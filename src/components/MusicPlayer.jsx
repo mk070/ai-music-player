@@ -1,7 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { 
+  SkipForward, SkipBack, Shuffle, Repeat, 
+  Plus, Mic2, Download, List, Laptop2, Volume2, VolumeXIcon,
+  Maximize2, PauseIcon, PlayIcon
+} from 'lucide-react';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
-import gsap from 'gsap';
 
 const MusicPlayer = () => {
   const { 
@@ -16,156 +19,180 @@ const MusicPlayer = () => {
     setProgress
   } = useMusicPlayer();
   
-  const vinylRef = useRef(null);
-  const waveformRef = useRef(null);
+  const [showVolume, setShowVolume] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const progressBarRef = useRef(null);
+  const volumeBarRef = useRef(null);
+  const previousVolume = useRef(volume);
 
-  useEffect(() => {
-    if (vinylRef.current) {
-      if (isPlaying) {
-        gsap.to(vinylRef.current, {
-          rotation: '+=360',
-          repeat: -1,
-          duration: 10,
-          ease: 'linear'
-        });
-      } else {
-        gsap.killTweensOf(vinylRef.current);
-      }
-    }
-  }, [isPlaying]);
+  // Format time in MM:SS format
+  const formatTime = (time) => {
+    if (isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
-  useEffect(() => {
-    if (waveformRef.current && isPlaying) {
-      const bars = waveformRef.current.querySelectorAll('.waveform-bar');
-      
-      bars.forEach((bar) => {
-        const randomHeight = Math.random() * 100;
-        gsap.to(bar, {
-          height: `${randomHeight}%`,
-          duration: 0.3,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-          delay: Math.random() * 0.5
-        });
-      });
-    } else if (waveformRef.current) {
-      const bars = waveformRef.current.querySelectorAll('.waveform-bar');
-      bars.forEach((bar) => {
-        gsap.killTweensOf(bar);
-      });
-    }
-  }, [isPlaying, currentSong]);
-
+  // Handle progress bar click
   const handleProgressChange = (e) => {
-    setProgress(parseInt(e.target.value));
+    const progressBar = progressBarRef.current;
+    const boundingRect = progressBar.getBoundingClientRect();
+    const clickPosition = e.clientX - boundingRect.left;
+    const progressBarWidth = boundingRect.width;
+    const percentage = clickPosition / progressBarWidth;
+    const newTime = percentage * currentSong?.duration;
+    setProgress(newTime);
   };
 
+  // Handle volume change
   const handleVolumeChange = (e) => {
-    setVolume(parseInt(e.target.value));
+    const volumeBar = volumeBarRef.current;
+    const boundingRect = volumeBar.getBoundingClientRect();
+    const clickPosition = e.clientX - boundingRect.left;
+    const volumeBarWidth = boundingRect.width;
+    const newVolume = Math.max(0, Math.min(1, clickPosition / volumeBarWidth));
+    setVolume(newVolume);
+    
+    if (newVolume === 0) {
+      setIsMuted(true);
+    } else {
+      setIsMuted(false);
+    }
   };
 
-  if (!currentSong) return null;
+  // Toggle mute
+  const toggleMute = () => {
+    if (isMuted) {
+      setVolume(previousVolume.current);
+      setIsMuted(false);
+    } else {
+      previousVolume.current = volume;
+      setVolume(0);
+      setIsMuted(true);
+    }
+  };
 
   return (
-    <div className="p-4 px-6">
-      <div className="flex items-center">
-        <div className="hidden md:block relative flex-shrink-0">
-          <div ref={vinylRef} className="vinyl-disc h-16 w-16 mr-4">
-            <img 
-              src={currentSong.cover} 
-              alt={`Album art for ${currentSong.title}`}
-              className="h-full w-full object-cover opacity-70"
-            />
-          </div>
-        </div>
-      
-        <div className="flex flex-col flex-grow md:flex-grow-0 md:w-48 mr-4">
-          <span className="text-content font-medium truncate">{currentSong.title}</span>
-          <span className="text-text-dark text-sm truncate">{currentSong.artist}</span>
-        </div>
-      
-        <div className="hidden md:flex flex-grow items-center mx-4">
-          <div ref={waveformRef} className="w-full flex items-end justify-between h-12">
-            {Array(20).fill().map((_, index) => (
-              <div 
-                key={index} 
-                className="waveform-bar w-1 bg-accent mx-0.5 rounded-t"
-                style={{ height: isPlaying ? `${Math.random() * 100}%` : '10%' }}
-              ></div>
-            ))}
-          </div>
-        </div>
-      
-        <div className="flex-shrink-0">
-          <div className="music-controls flex items-center">
-            <button 
-              className="focus:outline-none" 
-              onClick={prevSong}
-              aria-label="Previous song"
-            >
-              <SkipBack size={20} />
-            </button>
-            
-            <button 
-              className="focus:outline-none mx-2 bg-accent hover:bg-accent-light rounded-full p-2 text-content"
-              onClick={togglePlay}
-              aria-label={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-            </button>
-            
-            <button 
-              className="focus:outline-none" 
-              onClick={nextSong}
-              aria-label="Next song"
-            >
-              <SkipForward size={20} />
-            </button>
-          </div>
-        </div>
-      
-        <div className="hidden lg:flex items-center ml-8">
-          <button className="focus:outline-none">
-            {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={handleVolumeChange}
-            className="w-24 ml-2"
-            aria-label="Volume control"
+    <div className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm h-[80px] flex items-center px-4 border-t border-zinc-900 z-50">
+      {/* Left section - Song info */}
+      <div className="flex items-center w-1/4">
+        <div className="h-14 w-14 mr-3 overflow-hidden">
+          <img 
+            src={currentSong?.coverUrl || '/default-cover.jpg'} 
+            alt={currentSong?.title || 'Song cover'} 
+            className="h-full w-full object-cover"
           />
+        </div>
+        <div className="mr-4">
+          <h3 className="text-white font-medium text-sm">{currentSong?.title || 'No song playing'}</h3>
+          <p className="text-zinc-400 text-xs">{currentSong?.artist || 'Unknown artist'}</p>
+        </div>
+        <button className="text-zinc-400 hover:text-white transition-colors">
+          <Plus size={20} />
+        </button>
+      </div>
+
+      {/* Center section - Controls and progress */}
+      <div className="flex flex-col items-center justify-center w-2/4">
+        {/* Control buttons */}
+        <div className="flex items-center justify-center mb-2">
+          <button className="text-zinc-400 hover:text-white mx-4 transition-colors">
+            <Shuffle size={18} />
+          </button>
+          <button 
+            className="text-zinc-400 hover:text-white mx-4 transition-colors"
+            onClick={prevSong}
+          >
+            <SkipBack size={22} />
+          </button>
+          <button 
+            className="text-white mx-4"
+            onClick={togglePlay}
+          >
+            {isPlaying ? (
+              <PauseIcon size={36} fill="white" strokeWidth={1} />
+            ) : (
+              <PlayIcon size={36} fill="none" strokeWidth={1} />
+            )}
+          </button>
+          <button 
+            className="text-zinc-400 hover:text-white mx-4 transition-colors"
+            onClick={nextSong}
+          >
+            <SkipForward size={22} />
+          </button>
+          <button className="text-zinc-400 hover:text-white mx-4 transition-colors">
+            <Repeat size={18} />
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full flex items-center">
+          <span className="text-xs text-zinc-400 mr-2">
+            {formatTime(progress)}
+          </span>
+          <div 
+            ref={progressBarRef}
+            className="flex-1 h-1 bg-zinc-700 rounded-full overflow-hidden cursor-pointer group"
+            onClick={handleProgressChange}
+          >
+            <div 
+              className="h-full bg-white group-hover:bg-green-500 transition-colors"
+              style={{ width: `${(progress / (currentSong?.duration || 1)) * 100}%` }}
+            ></div>
+          </div>
+          <span className="text-xs text-zinc-400 ml-2">
+            {formatTime(currentSong?.duration || 0)}
+          </span>
         </div>
       </div>
-      
-      <div className="mt-2">
-        <div className="flex items-center justify-between text-xs text-text-dark">
-          <span>{formatTime(progress)}</span>
-          <span>{currentSong.duration}</span>
+
+      {/* Right section - Volume and additional controls */}
+      <div className="flex items-center justify-end w-1/4">
+        <button className="text-green-500 hover:text-green-400 mx-2 transition-colors">
+          <Mic2 size={18} />
+        </button>
+        <button className="text-zinc-400 hover:text-white mx-2 transition-colors">
+          <Download size={18} />
+        </button>
+        <button className="text-zinc-400 hover:text-white mx-2 transition-colors">
+          <List size={18} />
+        </button>
+        <button className="text-zinc-400 hover:text-white mx-2 transition-colors">
+          <Laptop2 size={18} />
+        </button>
+        
+        {/* Volume control */}
+        <div className="relative ml-2 flex items-center">
+          <button 
+            className="text-zinc-400 hover:text-white mx-2 transition-colors"
+            onClick={toggleMute}
+            onMouseEnter={() => setShowVolume(true)}
+          >
+            {isMuted || volume === 0 ? <VolumeXIcon size={18} /> : <Volume2 size={18} />}
+          </button>
+          
+          {/* Volume slider */}
+          <div 
+            className={`w-24 h-1 bg-zinc-700 rounded-full overflow-hidden cursor-pointer ${showVolume ? 'opacity-100' : 'opacity-100'} transition-opacity`}
+            ref={volumeBarRef}
+            onClick={handleVolumeChange}
+            onMouseEnter={() => setShowVolume(true)}
+            onMouseLeave={() => setShowVolume(false)}
+          >
+            <div 
+              className="h-full bg-white hover:bg-green-500 transition-colors"
+              style={{ width: `${volume * 100}%` }}
+            ></div>
+          </div>
         </div>
-        <div className="mt-1">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={progress}
-            onChange={handleProgressChange}
-            className="w-full"
-            aria-label="Progress bar"
-          />
-        </div>
+        
+        <button className="text-zinc-400 hover:text-white ml-4 transition-colors">
+          <Maximize2 size={18} />
+        </button>
       </div>
     </div>
   );
 };
-
-function formatTime(seconds) {
-  const minutes = Math.floor((seconds * 3.29) / 60);
-  const remainingSeconds = Math.floor((seconds * 3.29) % 60);
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
 
 export default MusicPlayer;

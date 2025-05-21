@@ -86,9 +86,9 @@ const LandingPage = () => {
   };
   
   return (
-    <div ref={containerRef} className="min-h-screen flex flex-col bg-navy-dark overflow-hidden relative">
+    <div ref={containerRef} className="min-h-screen flex flex-col bg-navy-dark relative">
       {/* Futuristic background with gradient and particles */}
-      <div className="absolute inset-0 bg-gradient-to-b from-navy-dark via-navy to-navy-dark overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-b from-navy-dark via-navy to-navy-dark overflow-hidden">
         {/* Particles container */}
         <div ref={particlesRef} className="absolute inset-0 z-0"></div>
         
@@ -122,7 +122,7 @@ const LandingPage = () => {
       {/* Hero Section */}
       <div 
         ref={heroRef} 
-        className={`flex-1 flex items-center justify-center px-6 transition-all duration-1000 ${isLoaded ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'}`}
+        className={`min-h-screen flex items-center justify-center px-6 transition-all duration-1000 relative z-10 ${isLoaded ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'}`}
       >
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}

@@ -34,48 +34,167 @@
   font-display: swap;
 }
 
-html, body {
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
-  @apply font-rubik bg-navy text-text-light;
+  font-family: 'Rubik', sans-serif;
+  background-color: #07070d; /* bg-navy */
+  color: #e2e8f0; /* text-text-light */
+}
+
+/* Enable smooth scrolling for the html element */
+html {
+  scroll-behavior: smooth;
+  overflow-y: auto;
+}
+
+/* This ensures the body takes full viewport height and allows scrolling */
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* This class is applied to the main content container */
+.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #1e293b; /* bg-navy-dark */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(99, 102, 241, 0.3); /* bg-accent/30 */
+  border-radius: 9999px; /* rounded-full */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.5); /* bg-accent/50 */
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
 }
 
 @layer components {
   .sidebar-icon {
-    @apply relative flex items-center justify-center h-12 w-12 mt-2 mb-2 mx-auto 
-           text-text-light hover:text-content hover:bg-accent rounded-xl transition-all duration-300 ease-linear
-           cursor-pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 3rem;
+    width: 3rem;
+    margin: 0.5rem auto;
+    color: #e2e8f0; /* text-text-light */
+    border-radius: 0.75rem; /* rounded-xl */
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+  }
+
+  .sidebar-icon:hover {
+    color: #f8fafc; /* text-content */
+    background-color: rgba(99, 102, 241, 0.8); /* hover:bg-accent */
   }
 
   .sidebar-tooltip {
-    @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
-           text-content bg-navy-dark
-           text-xs font-bold transition-all duration-100 scale-0 origin-left z-50;
+    position: absolute;
+    width: auto;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    min-width: max-content;
+    left: 3.5rem; /* left-14 */
+    border-radius: 0.375rem; /* rounded-md */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    color: #f8fafc; /* text-content */
+    background-color: #1e293b; /* bg-navy-dark */
+    z-index: 50;
+    transform: scale(0);
+    transform-origin: left;
+    transition: all 0.1s ease-in-out;
   }
 
   .sidebar-icon:hover .sidebar-tooltip {
-    @apply scale-100;
+    transform: scale(1);
   }
 
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    padding: 0.5rem 1rem; /* px-4 py-2 */
+    border-radius: 0.5rem; /* rounded-lg */
+    font-weight: 500; /* font-medium */
+    transition: all 0.2s ease-in-out; /* transition-all duration-200 */
   }
 
   .btn-primary {
-    @apply bg-accent text-content hover:bg-accent-light;
+    background-color: #6366f1; /* bg-accent */
+    color: #f8fafc; /* text-content */
+  }
+
+  .btn-primary:hover {
+    background-color: #818cf8; /* hover:bg-accent-light */
   }
 
   .btn-secondary {
-    @apply bg-transparent border border-accent text-text-light hover:text-content hover:border-accent-light;
+    background-color: transparent; /* bg-transparent */
+    border: 1px solid #6366f1; /* border border-accent */
+    color: #e2e8f0; /* text-text-light */
+  }
+
+  .btn-secondary:hover {
+    color: #f8fafc; /* hover:text-content */
+    border-color: #818cf8; /* hover:border-accent-light */
   }
 
   .card {
-    @apply bg-content rounded-xl shadow-lg overflow-hidden;
+    background-color: #f8fafc; /* bg-content */
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+    overflow: hidden;
   }
 
   .input-field {
-    @apply w-full p-3 rounded-lg bg-navy-light border border-navy
-           text-text-light focus:outline-none focus:ring-2 focus:ring-accent
-           transition-all duration-200;
+    width: 100%;
+    padding: 0.75rem; /* p-3 */
+    border-radius: 0.5rem; /* rounded-lg */
+    background-color: #1e293b; /* bg-navy-light */
+    border: 1px solid #1e293b; /* border border-navy */
+    color: #e2e8f0; /* text-text-light */
+    outline: none;
+    transition: all 0.2s ease-in-out; /* transition-all duration-200 */
+  }
+
+  .input-field:focus {
+    outline: none;
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+    --tw-ring-color: rgba(99, 102, 241, 0.5); /* focus:ring-accent with opacity */
+    --tw-ring-offset-width: 0px;
   }
 }
 
@@ -86,19 +205,37 @@ html, body {
 }
 
 .music-controls {
-  @apply flex items-center justify-center space-x-4 text-text-light;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem; /* space-x-4 */
+  color: #e2e8f0; /* text-text-light */
 }
 
 .music-controls button {
-  @apply hover:text-content transition-colors duration-200;
+  transition: color 0.2s ease-in-out; /* transition-colors duration-200 */
+}
+
+.music-controls button:hover {
+  color: #f8fafc; /* hover:text-content */
 }
 
 .progress-bar {
-  @apply relative h-1 w-full bg-navy-light rounded-full overflow-hidden;
+  position: relative;
+  height: 0.25rem; /* h-1 */
+  width: 100%;
+  background-color: #1e293b; /* bg-navy-light */
+  border-radius: 9999px; /* rounded-full */
+  overflow: hidden;
 }
 
 .progress-bar-fill {
-  @apply absolute top-0 left-0 h-full bg-accent rounded-full;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #6366f1; /* bg-accent */
+  border-radius: 9999px; /* rounded-full */
 }
 
 .vinyl-disc {
@@ -117,5 +254,12 @@ html, body {
 
 .vinyl-disc::after {
   content: '';
-  @apply absolute top-1/2 left-1/2 w-6 h-6 rounded-full bg-navy transform -translate-x-1/2 -translate-y-1/2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5rem; /* w-6 */
+  height: 1.5rem; /* h-6 */
+  border-radius: 9999px; /* rounded-full */
+  background-color: #0f172a; /* bg-navy */
+  transform: translate(-50%, -50%); /* -translate-x-1/2 -translate-y-1/2 */
 }

@@ -11,42 +11,51 @@ import PlaylistBuilder from './pages/PlaylistBuilder';
 import SummerJourney from './pages/SummerJourney';
 import UploadPage from './pages/UploadPage';
 import PrivateRoute from './components/PrivateRoute';
-
+import PlaylistsPage from './pages/PlaylistsPage';
+import PlaylistViewPage from './pages/PlaylistViewPage';
+  
 function App() {
   return (
-    <Router>
-      <ErrorBoundary>
-        <MusicPlayerProvider>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route element={<Layout />}>
-              <Route path="/dashboard" element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              } />
-              <Route path="/playlists" element={
-                <PrivateRoute>
-                  <PlaylistBuilder />
-                </PrivateRoute>
-              } />
-              <Route path="/upload" element={
-                <PrivateRoute>
-                  <UploadPage />
-                </PrivateRoute>
-              } />
-              <Route path="/journey" element={
-                <PrivateRoute>
-                  <SummerJourney />
-                </PrivateRoute>
-              } />
-            </Route>
-          </Routes>
-        </MusicPlayerProvider>
-      </ErrorBoundary>
-    </Router>
+    <div className="h-full flex flex-col">
+      <Router>
+        <ErrorBoundary>
+          <MusicPlayerProvider>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route element={<Layout />}>
+                <Route path="/dashboard" element={
+                  <PrivateRoute>
+                    <Dashboard />
+                  </PrivateRoute>
+                } />
+                <Route path="/playlists" element={
+                  <PrivateRoute>
+                    <PlaylistsPage />
+                  </PrivateRoute>
+                } />
+                <Route path="/playlists/:playlistId" element={
+                  <PrivateRoute>
+                    <PlaylistViewPage />
+                  </PrivateRoute>
+                } />
+                <Route path="/upload" element={
+                  <PrivateRoute>
+                    <UploadPage />
+                  </PrivateRoute>
+                } />
+                <Route path="/journey" element={
+                  <PrivateRoute>
+                    <SummerJourney />
+                  </PrivateRoute>
+                } />
+              </Route>
+            </Routes>
+          </MusicPlayerProvider>
+        </ErrorBoundary>
+      </Router>
+    </div>
   );
 }
 
