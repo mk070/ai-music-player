@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./assets/Rubik-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./assets/Rubik-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./assets/Rubik-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./assets/Rubik-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body {
+  overflow-x: hidden;
+  @apply font-rubik bg-navy text-text-light;
+}
+
+@layer components {
+  .sidebar-icon {
+    @apply relative flex items-center justify-center h-12 w-12 mt-2 mb-2 mx-auto 
+           text-text-light hover:text-content hover:bg-accent rounded-xl transition-all duration-300 ease-linear
+           cursor-pointer;
+  }
+
+  .sidebar-tooltip {
+    @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
+           text-content bg-navy-dark
+           text-xs font-bold transition-all duration-100 scale-0 origin-left z-50;
+  }
+
+  .sidebar-icon:hover .sidebar-tooltip {
+    @apply scale-100;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-content hover:bg-accent-light;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border border-accent text-text-light hover:text-content hover:border-accent-light;
+  }
+
+  .card {
+    @apply bg-content rounded-xl shadow-lg overflow-hidden;
+  }
+
+  .input-field {
+    @apply w-full p-3 rounded-lg bg-navy-light border border-navy
+           text-text-light focus:outline-none focus:ring-2 focus:ring-accent
+           transition-all duration-200;
+  }
+}
+
+/* GSAP Animations */
+.reveal {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.music-controls {
+  @apply flex items-center justify-center space-x-4 text-text-light;
+}
+
+.music-controls button {
+  @apply hover:text-content transition-colors duration-200;
+}
+
+.progress-bar {
+  @apply relative h-1 w-full bg-navy-light rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply absolute top-0 left-0 h-full bg-accent rounded-full;
+}
+
+.vinyl-disc {
+  @apply rounded-full overflow-hidden shadow-lg;
+  background: linear-gradient(
+    45deg,
+    #000 0%,
+    #444 40%,
+    #000 45%,
+    #444 50%,
+    #000 55%,
+    #444 60%,
+    #000 100%
+  );
+}
+
+.vinyl-disc::after {
+  content: '';
+  @apply absolute top-1/2 left-1/2 w-6 h-6 rounded-full bg-navy transform -translate-x-1/2 -translate-y-1/2;
+}
