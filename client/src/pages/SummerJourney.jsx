@@ -105,38 +105,41 @@ const SummerJourney = () => {
   // Initialize smooth scrolling with Lenis
   useEffect(() => {
     // Only run this on the client side
-    if (typeof window !== 'undefined') {
-      // Dynamically import Lenis
-      import('lenis').then(({ default: Lenis }) => {
-      
-      lenisRef.current = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smooth: true,
-        direction: 'vertical',
-        smoothTouch: false,
-        touchMultiplier: 1.5,
-      });
-
-      // Sync with GSAP ScrollTrigger
-      lenisRef.current.on('scroll', ScrollTrigger.update);
-      gsap.ticker.add((time) => {
-        lenisRef.current.raf(time * 1000);
-      });
-      gsap.ticker.lagSmoothing(0);
-
-      // Store the Lenis instance
-      lenisRef.current = lenis;
-      
-      // Cleanup function
-      return () => {
-        if (lenisRef.current) {
-          lenisRef.current.destroy();
-          lenisRef.current = null;
-        }
-      };
+    if (typeof window === 'undefined') return;
+    
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smooth: true,
+      direction: 'vertical',
+      smoothTouch: false,
+      touchMultiplier: 1.5
     });
-    }
+
+    // Store the Lenis instance
+    lenisRef.current = lenis;
+
+    // Sync with GSAP ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update);
+    
+    // Add raf to update Lenis on each frame
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+    
+    // Improve performance
+    gsap.ticker.lagSmoothing(0);
+    
+    // Cleanup function
+    return () => {
+      if (lenisRef.current) {
+        lenisRef.current.destroy();
+        lenisRef.current = null;
+      }
+      gsap.ticker.remove((time) => {
+        if (lenisRef.current) lenisRef.current.raf(time * 1000);
+      });
+    };
   }, []);
 
   // Timeline scroll animation

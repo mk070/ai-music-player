@@ -13,7 +13,8 @@ import UploadPage from './pages/UploadPage';
 import PrivateRoute from './components/PrivateRoute';
 import PlaylistsPage from './pages/PlaylistsPage';
 import PlaylistViewPage from './pages/PlaylistViewPage';
-  
+import FavoritesPage from './pages/FavoritesPage';    
+import NewMemoryPage from './pages/NewMemoryPage';
 function App() {
   return (
     <div className="h-full flex flex-col">
@@ -30,9 +31,19 @@ function App() {
                     <Dashboard />
                   </PrivateRoute>
                 } />
+                <Route path="/favorites" element={
+                  <PrivateRoute>
+                    <FavoritesPage />
+                  </PrivateRoute>
+                } />
                 <Route path="/playlists" element={
                   <PrivateRoute>
                     <PlaylistsPage />
+                  </PrivateRoute>
+                } />
+                <Route path="/playlists-builder" element={
+                  <PrivateRoute>
+                    <PlaylistBuilder />
                   </PrivateRoute>
                 } />
                 <Route path="/playlists/:playlistId" element={
@@ -48,6 +59,11 @@ function App() {
                 <Route path="/journey" element={
                   <PrivateRoute>
                     <SummerJourney />
+                  </PrivateRoute>
+                } />
+                <Route path="/memories/new" element={
+                  <PrivateRoute>
+                    <NewMemoryPage />
                   </PrivateRoute>
                 } />
               </Route>

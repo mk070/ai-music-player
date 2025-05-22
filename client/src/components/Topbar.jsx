@@ -1,7 +1,7 @@
 import React from 'react'
 import { Search, Bell } from 'lucide-react'
 
-const Topbar = () => {
+const Topbar = ({ toggleSidebar }) => {
   return (
 <div className="flex justify-between items-center px-8 py-4 sticky top-0 z-10 bg-[#07070d]/90 backdrop-blur-sm">
             <h1 className="text-3xl font-bold text-[#fcfcff]">Home</h1>

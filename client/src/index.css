@@ -72,12 +72,26 @@ body {
 .lenis.lenis-scrolling iframe {
   pointer-events: none;
 }
+/* Add this to your global CSS file */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.ai-playlist-container {
+  scroll-behavior: smooth;
+}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 
 ::-webkit-scrollbar-track {
   background-color: #1e293b; /* bg-navy-dark */

@@ -1,524 +1,740 @@
-import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Search, PlusCircle, Play, Edit2, Share2, Trash2, Music, Heart, Calendar, Clock } from "lucide-react";
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { 
+  Play, 
+  Share2, 
+  Heart, 
+  MessageCircle, 
+  GitFork,
+  Plus,
+  MoreVertical,
+  Filter,
+  Clock,
+  Users,
+  Headphones,
+  Sparkles,
+  Download,
+  Volume2,
+  Search,
+  Music,
+  Home,
+  User
+} from 'lucide-react';
 
-// Register GSAP plugins
+// Initialize GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
-// Mock data for playlists
-const mockPlaylists = [
+// Sample data
+const aiMoodPlaylists = [
   {
     id: 1,
-    title: "Summer Roadtrip '24",
-    coverUrl: "https://images.unsplash.com/photo-1523997597394-92519105b5d5?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 14,
-    createdAt: "June 2024",
-    type: "manual",
-    favorite: true,
-    mood: "energy",
-    tags: ["summer", "driving"]
+    name: "Chill Drive",
+    mood: "melancholy",
+    color: "from-blue-400 to-purple-500",
+    tracks: 24,
+    duration: "1h 32m",
+    plays: "2.1k",
+    cover: "/api/placeholder/300/300"
   },
   {
     id: 2,
-    title: "Study Focus Flow",
-    coverUrl: "https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 24,
-    createdAt: "May 2024",
-    type: "ai",
-    favorite: false,
-    mood: "focus",
-    tags: ["concentration", "ambient"],
-    aiReason: "Based on your productivity patterns"
+    name: "Monsoon Nights",
+    mood: "nostalgic",
+    color: "from-teal-400 to-blue-500",
+    tracks: 18,
+    duration: "58m",
+    plays: "1.8k",
+    cover: "/api/placeholder/300/300"
   },
   {
     id: 3,
-    title: "Beach Sunset Chill",
-    coverUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 18,
-    createdAt: "July 2024",
-    type: "manual",
-    favorite: true,
-    mood: "chill",
-    tags: ["summer", "relax"]
+    name: "Summer Breeze",
+    mood: "uplifting",
+    color: "from-yellow-400 to-orange-500",
+    tracks: 32,
+    duration: "2h 14m",
+    plays: "3.2k",
+    cover: "/api/placeholder/300/300"
   },
   {
     id: 4,
-    title: "Morning Boost",
-    coverUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 10,
-    createdAt: "July 2024",
-    type: "ai", 
-    favorite: false,
-    mood: "energy",
-    tags: ["workout", "morning"],
-    aiReason: "Generated based on your morning activity"
+    name: "Late Night Vibes",
+    mood: "chill",
+    color: "from-purple-400 to-pink-500",
+    tracks: 21,
+    duration: "1h 26m",
+    plays: "1.5k",
+    cover: "/api/placeholder/300/300"
   },
   {
     id: 5,
-    title: "Late Night Coding",
-    coverUrl: "https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 35,
-    createdAt: "April 2024",
-    type: "manual",
-    favorite: true,
-    mood: "focus",
-    tags: ["electronic", "ambient"]
-  },
-  {
-    id: 6,
-    title: "Nostalgic Throwbacks",
-    coverUrl: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 22,
-    createdAt: "June 2024",
-    type: "ai",
-    favorite: false,
-    mood: "nostalgia",
-    tags: ["retro", "classics"],
-    aiReason: "Based on your most played tracks from 2010-2015"
-  },
-  {
-    id: 7,
-    title: "Summer Memories",
-    coverUrl: "https://images.unsplash.com/photo-1605007493699-af65834f8a00?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 17,
-    createdAt: "July 2024",
-    type: "manual",
-    favorite: true,
-    mood: "summer",
-    tags: ["pop", "summer"]
-  },
-  {
-    id: 8,
-    title: "Heartbreak Healer",
-    coverUrl: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80",
-    songCount: 16,
-    createdAt: "May 2024",
-    type: "ai",
-    favorite: false,
-    mood: "melancholy",
-    tags: ["sad", "emotional"],
-    aiReason: "Created based on your journal entries this month"
+    name: "Road Trip Classics",
+    mood: "energetic",
+    color: "from-green-400 to-teal-500",
+    tracks: 45,
+    duration: "3h 12m",
+    plays: "4.1k",
+    cover: "/api/placeholder/300/300"
   }
 ];
 
-const PlaylistsPage = () => {
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortOption, setSortOption] = useState("recent");
-  const [filteredPlaylists, setFilteredPlaylists] = useState(mockPlaylists);
+const userPlaylists = [
+  {
+    id: 1,
+    name: "Summer 2024 Hits",
+    cover: "/api/placeholder/300/300",
+    duration: "2h 45m",
+    tracks: 42,
+    tags: ["#Summer2024", "#Hits"],
+    type: "created",
+    isPublic: true
+  },
+  {
+    id: 2,
+    name: "Rainy Day Feels",
+    cover: "/api/placeholder/300/300",
+    duration: "1h 28m",
+    tracks: 23,
+    tags: ["#RainDrive", "#LoFi"],
+    type: "favorited",
+    isPublic: false
+  },
+  {
+    id: 3,
+    name: "Workout Energy",
+    cover: "/api/placeholder/300/300",
+    duration: "56m",
+    tracks: 18,
+    tags: ["#Workout", "#Energy"],
+    type: "created",
+    isPublic: true
+  },
+  {
+    id: 4,
+    name: "Study Sessions",
+    cover: "/api/placeholder/300/300",
+    duration: "3h 15m",
+    tracks: 67,
+    tags: ["#Study", "#Focus"],
+    type: "shared",
+    isPublic: false
+  }
+];
+
+const communityPlaylists = [
+  {
+    id: 1,
+    name: "Gen Z Anthems",
+    creator: { name: "Alex Rivera", avatar: "/api/placeholder/40/40" },
+    cover: "/api/placeholder/300/300",
+    duration: "1h 42m",
+    tracks: 28,
+    likes: 1247,
+    comments: 89,
+    forks: 156,
+    tags: ["#GenZ", "#Trending"]
+  },
+  {
+    id: 2,
+    name: "Midnight Coffee Shop",
+    creator: { name: "Luna Park", avatar: "/api/placeholder/40/40" },
+    cover: "/api/placeholder/300/300",
+    duration: "2h 18m",
+    tracks: 35,
+    likes: 892,
+    comments: 67,
+    forks: 203,
+    tags: ["#CoffeeShop", "#Ambient"]
+  },
+  {
+    id: 3,
+    name: "Beach Sunset Vibes",
+    creator: { name: "Maya Chen", avatar: "/api/placeholder/40/40" },
+    cover: "/api/placeholder/300/300",
+    duration: "1h 33m",
+    tracks: 24,
+    likes: 2156,
+    comments: 145,
+    forks: 298,
+    tags: ["#Beach", "#Sunset"]
+  }
+];
+
+const Playlists = () => {
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState(null);
   
-  const headerRef = useRef(null);
-  const cardsRef = useRef(null);
-  const filterRef = useRef(null);
+  const heroRef = useRef(null);
+  const aiCarouselRef = useRef(null);
+  const playlistsGridRef = useRef(null);
+  const communityRef = useRef(null);
+  const ctaButtonRef = useRef(null);
+  const playlistContainerRef = useRef(null);
   
-  // Filter playlists based on active filter and search term
+  // Hero animations
   useEffect(() => {
-    let result = [...mockPlaylists];
-    
-    // Apply filter
-    if (activeFilter !== "all") {
-      if (activeFilter === "ai") {
-        result = result.filter(playlist => playlist.type === "ai");
-      } else if (activeFilter === "manual") {
-        result = result.filter(playlist => playlist.type === "manual");
-      } else if (activeFilter === "favorites") {
-        result = result.filter(playlist => playlist.favorite);
-      } else if (activeFilter === "summer") {
-        result = result.filter(playlist => 
-          playlist.tags.includes("summer") || playlist.mood === "summer"
-        );
-      }
-    }
-    
-    // Apply search
-    if (searchTerm) {
-      result = result.filter(playlist => 
-        playlist.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        playlist.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    if (heroRef.current) {
+      const tl = gsap.timeline();
+      
+      tl.fromTo('.hero-title', 
+        { x: -100, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1, ease: "power3.out" }
+      )
+      .fromTo('.hero-subtitle',
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
+        "-=0.3"
+      )
+      .fromTo('.hero-badge',
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.7)" },
+        "-=0.2"
       );
     }
-    
-    // Apply sorting
-    if (sortOption === "recent") {
-      // Already sorted by recent in our mock data
-    } else if (sortOption === "alphabetical") {
-      result.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortOption === "most-played") {
-      // In a real app, we'd sort by play count
-      result.sort((a, b) => b.songCount - a.songCount);
-    }
-    
-    setFilteredPlaylists(result);
-  }, [activeFilter, searchTerm, sortOption]);
-  
-  // GSAP animations
+  }, []);
+
+  // AI Carousel animations
   useEffect(() => {
-    // Header animation
-    gsap.from(headerRef.current.children, {
-      y: -50,
-      opacity: 0,
-      duration: 0.8,
-      stagger: 0.2,
-      ease: "power3.out",
-    });
-    
-    // Filter tabs animation
-    gsap.from(filterRef.current.children, {
-      y: 30,
-      opacity: 0,
-      duration: 0.5,
-      stagger: 0.1,
-      ease: "back.out(1.7)",
-      delay: 0.4
-    });
-    
-    // Cards animation with ScrollTrigger
-    const cards = cardsRef.current.children;
-    gsap.from(cards, {
-      y: 100,
-      opacity: 0,
-      duration: 0.8,
-      stagger: 0.1,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: cardsRef.current,
-        start: "top bottom-=100",
-        toggleActions: "play none none none"
-      }
-    });
-    
-    // Cleanup
-    return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
-    };
-  }, [filteredPlaylists]);
-
-  return (
-    <div className="min-h-screen font-['Rubik'] bg-[#2d2e37] text-[#c4c4c4]">
-      {/* Main layout with left navigation and right content */}
-      <div className="flex">
-        {/* Left Navigation Bar - simplified for this example */}
-        <div className="hidden md:flex w-20 lg:w-64 h-screen bg-[#262630] flex-col fixed left-0 top-0 border-r border-[#3c3abe]/20">
-          <div className="p-6">
-            <h2 className="text-white text-xl font-bold">Sonique</h2>
-          </div>
-          <nav className="mt-8 flex flex-col px-4">
-            <a href="#" className="flex items-center py-3 px-4 rounded-lg text-[#c4c4c4] hover:bg-[#3c3abe]/10 transition-all">
-              <span className="mr-3">🏠</span>
-              <span className="hidden lg:inline">Home</span>
-            </a>
-            <a href="#" className="flex items-center py-3 px-4 rounded-lg bg-[#3c3abe]/20 text-white">
-              <span className="mr-3">📚</span>
-              <span className="hidden lg:inline">My Library</span>
-            </a>
-            <a href="#" className="flex items-center py-3 px-4 ml-6 rounded-lg text-white">
-              <span className="mr-3">🎵</span>
-              <span className="hidden lg:inline">Playlists</span>
-            </a>
-            <a href="#" className="flex items-center py-3 px-4 rounded-lg text-[#c4c4c4] hover:bg-[#3c3abe]/10 transition-all">
-              <span className="mr-3">💎</span>
-              <span className="hidden lg:inline">Explore</span>
-            </a>
-            <a href="#" className="flex items-center py-3 px-4 rounded-lg text-[#c4c4c4] hover:bg-[#3c3abe]/10 transition-all">
-              <span className="mr-3">🧠</span>
-              <span className="hidden lg:inline">AI DJ</span>
-            </a>
-          </nav>
-        </div>
-
-        {/* Main Content */}
-        <div className="w-full md:ml-20 lg:ml-64 p-4 md:p-8">
-          {/* Header Section */}
-          <header ref={headerRef} className="mb-10">
-            <h1 className="text-4xl font-bold text-white mb-2">Your Playlists</h1>
-            <p className="text-sm text-slate-300 italic mb-6">All your moods and memories in one place</p>
-            
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-pink-500 to-yellow-500 text-white rounded-xl px-6 py-2.5 shadow-lg flex items-center"
-                onClick={() => alert("Navigate to /playlist-builder")}
-              >
-                <PlusCircle size={18} className="mr-2" />
-                Create New Playlist
-              </motion.button>
-              
-              {/* Search & Sort */}
-              <div className="flex items-center mt-4 sm:mt-0">
-                <div className="relative mr-4">
-                  <input
-                    type="text"
-                    placeholder="Search playlists..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-white/10 backdrop-blur-md rounded-full pl-10 pr-4 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#3c3abe] w-full max-w-xs"
-                  />
-                  <Search size={16} className="text-white/60 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                </div>
-                
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
-                  className="bg-white/10 backdrop-blur-md rounded-full px-4 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#3c3abe] appearance-none cursor-pointer"
-                >
-                  <option value="recent">Recently Added</option>
-                  <option value="alphabetical">A-Z</option>
-                  <option value="most-played">Most Played</option>
-                </select>
-              </div>
-            </div>
-          </header>
-          
-          {/* Filters */}
-          <div ref={filterRef} className="mb-8 overflow-x-auto py-2 -mx-2 px-2">
-            <div className="flex space-x-3 text-white text-sm font-semibold">
-              <button
-                className={`px-4 py-1.5 rounded-full transition-all ${activeFilter === 'all' ? 'bg-[#3c3abe] text-white' : 'bg-white/10 backdrop-blur-md hover:bg-white/20'}`}
-                onClick={() => setActiveFilter('all')}
-              >
-                All
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-full transition-all flex items-center ${activeFilter === 'ai' ? 'bg-[#3c3abe] text-white' : 'bg-white/10 backdrop-blur-md hover:bg-white/20'}`}
-                onClick={() => setActiveFilter('ai')}
-              >
-                <span className="mr-1.5">🧠</span> AI-Suggested
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-full transition-all ${activeFilter === 'manual' ? 'bg-[#3c3abe] text-white' : 'bg-white/10 backdrop-blur-md hover:bg-white/20'}`}
-                onClick={() => setActiveFilter('manual')}
-              >
-                Manual
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-full transition-all flex items-center ${activeFilter === 'favorites' ? 'bg-[#3c3abe] text-white' : 'bg-white/10 backdrop-blur-md hover:bg-white/20'}`}
-                onClick={() => setActiveFilter('favorites')}
-              >
-                <span className="mr-1.5">❤️</span> Favorites
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-full transition-all flex items-center ${activeFilter === 'summer' ? 'bg-[#3c3abe] text-white' : 'bg-white/10 backdrop-blur-md hover:bg-white/20'}`}
-                onClick={() => setActiveFilter('summer')}
-              >
-                <span className="mr-1.5">🌞</span> Summer Vibes
-              </button>
-            </div>
-          </div>
-          
-          {/* Playlist Grid */}
-          <div ref={cardsRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
-            <AnimatePresence>
-              {filteredPlaylists.map((playlist) => (
-                <PlaylistCard key={playlist.id} playlist={playlist} />
-              ))}
-            </AnimatePresence>
-          </div>
-          
-          {/* Empty State */}
-          {filteredPlaylists.length === 0 && (
-            <div className="flex flex-col items-center justify-center p-16 text-center">
-              <Music size={48} className="text-white/30 mb-4" />
-              <h3 className="text-white text-xl font-semibold mb-2">No playlists found</h3>
-              <p className="text-white/60 mb-6">Try adjusting your filters or create a new playlist</p>
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-pink-500 to-yellow-500 text-white rounded-xl px-4 py-2 shadow-lg flex items-center"
-                onClick={() => alert("Navigate to /playlist-builder")}
-              >
-                <PlusCircle size={18} className="mr-2" />
-                Create New Playlist
-              </motion.button>
-            </div>
-          )}
-          
-          {/* Mobile Floating Action Button */}
-          <div className="md:hidden fixed bottom-6 right-6 z-10">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="bg-gradient-to-r from-pink-500 to-yellow-500 text-white rounded-full p-4 shadow-xl"
-              onClick={() => alert("Navigate to /playlist-builder")}
-            >
-              <PlusCircle size={24} />
-            </motion.button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// PlaylistCard Component
-const PlaylistCard = ({ playlist }) => {
-  const [isHovering, setIsHovering] = useState(false);
-  const cardRef = useRef(null);
-  
- // Continuing the PlaylistCard component:
-
-  // Hover effect with GSAP
-  useEffect(() => {
-    if (isHovering) {
-      gsap.to(cardRef.current, {
-        scale: 1.03,
-        boxShadow: "0 20px 25px -5px rgba(60, 58, 190, 0.15), 0 8px 10px -6px rgba(60, 58, 190, 0.1)",
-        duration: 0.3,
-        ease: "power2.out"
-      });
-    } else {
-      gsap.to(cardRef.current, {
-        scale: 1,
-        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
-        duration: 0.3,
-        ease: "power2.out"
-      });
+    if (aiCarouselRef.current) {
+      gsap.fromTo('.ai-playlist-card',
+        { y: 50, opacity: 0 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          duration: 0.8,
+          stagger: 0.2,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: aiCarouselRef.current,
+            start: "top 80%"
+          }
+        }
+      );
     }
-  }, [isHovering]);
+  }, []);
 
-  // Mood emoji mapping
-  const getMoodEmoji = (mood) => {
-    const moods = {
-      energy: "🔥",
-      focus: "🧠",
-      chill: "😌",
-      nostalgia: "✨",
-      summer: "🌞",
-      melancholy: "💔"
+  // Playlists grid animations
+  useEffect(() => {
+    if (playlistsGridRef.current) {
+      gsap.fromTo('.playlist-card',
+        { y: 30, opacity: 0 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: playlistsGridRef.current,
+            start: "top 85%"
+          }
+        }
+      );
+    }
+  }, [activeFilter]);
+
+  // Community section animations
+  useEffect(() => {
+    if (communityRef.current) {
+      gsap.fromTo('.community-card',
+        { y: 40, opacity: 0 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          duration: 0.7,
+          stagger: 0.15,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: communityRef.current,
+            start: "top 80%"
+          }
+        }
+      );
+    }
+  }, []);
+
+  // Floating CTA button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setIsScrolled(scrollY > 200);
     };
-    return moods[mood] || "🎵";
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Filter playlists
+  const filteredPlaylists = userPlaylists.filter(playlist => {
+    if (activeFilter === 'all') return true;
+    return playlist.type === activeFilter;
+  });
+
+  const getMoodColor = (mood) => {
+    const colors = {
+      melancholy: 'bg-blue-900/40 text-blue-300 border border-blue-500/30',
+      nostalgic: 'bg-purple-900/40 text-purple-300 border border-purple-500/30',
+      uplifting: 'bg-amber-900/40 text-amber-300 border border-amber-500/30',
+      chill: 'bg-teal-900/40 text-teal-300 border border-teal-500/30',
+      energetic: 'bg-green-900/40 text-green-300 border border-green-500/30',
+      focus: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/30',
+      summer: 'bg-pink-900/40 text-pink-300 border border-pink-500/30'
+    };
+    return colors[mood] || 'bg-gray-800/40 text-gray-400 border border-gray-600/30';
   };
 
   return (
-    <motion.div
-      ref={cardRef}
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white/10 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      <div className="relative">
-        {/* Cover Image */}
-        <div className="h-48 overflow-hidden relative">
-          <img 
-            src={playlist.coverUrl} 
-            alt={playlist.title} 
-            className="w-full h-full object-cover"
-          />
+    <div className="min-h-screen bg-[#07070d] text-[#c4c4c4] font-['Rubik',sans-serif]">
+    
+      {/* AI Mood-Based Mix Carousel */}
+      <section ref={aiCarouselRef} className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#fcfcff] mb-4">
+              AI Curated for Your Mood
+            </h2>
+            <p className="text-[#c4c4c4] text-lg">
+              Playlists that understand your vibe before you do
+            </p>
+          </div>
           
-          {/* Play button overlay on hover */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovering ? 1 : 0 }}
-            className="absolute inset-0 bg-black/40 flex items-center justify-center"
-          >
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-[#3c3abe] rounded-full p-3 text-white"
-              onClick={(e) => {
-                e.stopPropagation();
-                alert(`Playing playlist: ${playlist.title}`);
+          <div className="relative">
+            <button 
+              onClick={() => {
+                playlistContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
               }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-[#1a1a24] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#3c3abe] transition-colors duration-300"
             >
-              <Play size={24} fill="white" />
-            </motion.button>
-          </motion.div>
-          
-          {/* AI Badge */}
-          {playlist.type === "ai" && (
-            <div className="absolute top-3 left-3 bg-[#3c3abe]/90 text-white text-xs px-2 py-1 rounded-full flex items-center">
-              <span className="mr-1">🧠</span> AI
+              &larr;
+            </button>
+            
+            <div 
+              ref={playlistContainerRef}
+              className="ai-playlist-container flex overflow-hidden space-x-6 py-6 px-2"
+            >
+              {aiMoodPlaylists.map((playlist, index) => (
+                <motion.div
+                  key={playlist.id}
+                  className="ai-playlist-card flex-shrink-0 w-80"
+                  onHoverStart={() => setHoveredCard(`ai-${playlist.id}`)}
+                  onHoverEnd={() => setHoveredCard(null)}
+                  whileHover={{ y: -8, transition: { duration: 0.3 } }}
+                >
+                  <div className="relative group">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${playlist.color} rounded-2xl blur-xl opacity-10 group-hover:opacity-20 transition-opacity duration-300`}></div>
+                    
+                    <div className="relative bg-[#0f0f17]/80 backdrop-blur-md rounded-2xl p-6 border border-[#2a2a3a] hover:border-[#3c3abe] hover:shadow-lg hover:shadow-[#3c3abe]/20 transition-all duration-300">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold text-[#fcfcff] mb-2">
+                            {playlist.name}
+                          </h3>
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getMoodColor(playlist.mood)} backdrop-blur-sm`}>
+                            #{playlist.mood}
+                          </span>
+                        </div>
+                        
+                        <motion.button
+                          className="w-12 h-12 bg-[#3c3abe] rounded-full flex items-center justify-center text-white hover:bg-[#3c3abe]/80 transition-colors"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Play size={18} fill="white" />
+                        </motion.button>
+                      </div>
+                      
+                      <div className="space-y-3 mb-4">
+                        <div className="flex justify-between text-sm text-[#c4c4c4]">
+                          <span>{playlist.tracks} tracks</span>
+                          <span>{playlist.duration}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-[#c4c4c4]">
+                          <span className="flex items-center"><Users size={12} className="mr-1" /> {playlist.plays}</span>
+                          <button className="hover:text-[#3c3abe] transition-colors hover:scale-110">
+                            <Share2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          )}
-          
-          {/* Favorite Badge */}
-          {playlist.favorite && (
-            <div className="absolute top-3 right-3 bg-pink-500/90 text-white text-xs px-2 py-1 rounded-full">
-              ❤️
-            </div>
-          )}
+            
+            <button 
+              onClick={() => {
+                playlistContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-[#1a1a24] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#3c3abe] transition-colors duration-300"
+            >
+              &rarr;
+            </button>
+          </div>
         </div>
-        
-        {/* Content */}
-        <div className="p-4">
-          <h3 className="text-lg font-semibold text-white mb-1">{playlist.title}</h3>
-          
-          <div className="flex items-center text-sm text-gray-300 mb-3">
-            <Music size={14} className="mr-1" />
-            <span className="mr-3">{playlist.songCount} songs</span>
-            <Calendar size={14} className="mr-1" /> 
-            <span>{playlist.createdAt}</span>
-          </div>
-          
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-3">
-            <div className="bg-[#3c3abe]/20 text-[#c4c4c4] text-xs px-2 py-1 rounded-full flex items-center">
-              {getMoodEmoji(playlist.mood)} {playlist.mood}
-            </div>
-            {playlist.tags.map((tag, index) => (
-              <div key={index} className="bg-white/10 text-[#c4c4c4] text-xs px-2 py-1 rounded-full">
-                #{tag}
-              </div>
-            ))}
-          </div>
-          
-          {/* AI Reason */}
-          {playlist.type === "ai" && playlist.aiReason && (
-            <div className="text-xs text-[#c4c4c4]/70 italic mb-3">
-              "{playlist.aiReason}"
-            </div>
-          )}
-          
-          {/* Action buttons */}
-          <div className="mt-2 flex justify-between">
-            <div className="flex space-x-2">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-2 text-[#c4c4c4] hover:text-white transition-colors rounded-full hover:bg-white/10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  alert(`Edit playlist: ${playlist.title}`);
-                }}
-              >
-                <Edit2 size={16} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-2 text-[#c4c4c4] hover:text-white transition-colors rounded-full hover:bg-white/10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  alert(`Share playlist: ${playlist.title}`);
-                }}
-              >
-                <Share2 size={16} />
-              </motion.button>
+      </section>
+
+      {/* My Playlists */}
+      <section ref={playlistsGridRef} className="pb-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#fcfcff] mb-4">
+                My Playlists
+              </h2>
+              <p className="text-[#c4c4c4] text-lg">
+                Your personal collection of curated vibes
+              </p>
             </div>
             
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 text-[#c4c4c4] hover:text-red-400 transition-colors rounded-full hover:bg-white/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                alert(`Delete playlist: ${playlist.title}`);
-              }}
+              className="mt-6 md:mt-0 bg-gradient-to-r from-[#3c3abe] to-[#6563ee] text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2 hover:shadow-lg hover:shadow-[#3c3abe]/25 transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <Trash2 size={16} />
+              <Plus size={20} />
+              <span>Create New Playlist</span>
+            </motion.button>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 mb-8">
+            {['all', 'created', 'favorited', 'shared'].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  activeFilter === filter
+                    ? 'bg-[#3c3abe] text-white'
+                    : 'bg-[#fcfcff]/10 text-[#c4c4c4] hover:bg-[#fcfcff]/20'
+                }`}
+              >
+                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
+          </div>
+          
+          {/* Playlists Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredPlaylists.map((playlist) => (
+              <motion.div
+                key={playlist.id}
+                className="playlist-card group relative"
+                whileHover={{ y: -5, transition: { duration: 0.3 } }}
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#3c3abe]/20 to-[#6563ee]/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
+                  
+                  <div className="relative bg-[#fcfcff] rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <div className="relative h-48">
+                      <img 
+                        src={playlist.cover} 
+                        alt={playlist.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      
+                      {/* Play Button Overlay */}
+                      <motion.div
+                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        initial={{ scale: 0.8 }}
+                        whileHover={{ scale: 1 }}
+                      >
+                        <button className="w-16 h-16 bg-[#3c3abe] rounded-full flex items-center justify-center text-white shadow-lg">
+                          <Play size={24} fill="white" />
+                        </button>
+                      </motion.div>
+                      
+                      {/* More Options */}
+                      <button className="absolute top-4 right-4 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <MoreVertical size={16} />
+                      </button>
+                    </div>
+                    
+                    <div className="p-5">
+                      <h3 className="text-lg font-semibold text-[#07070d] mb-2">
+                        {playlist.name}
+                      </h3>
+                      
+                      <div className="flex items-center text-sm text-gray-600 space-x-4 mb-3">
+                        <span className="flex items-center space-x-1">
+                          <Clock size={14} />
+                          <span>{playlist.duration}</span>
+                        </span>
+                        <span>{playlist.tracks} tracks</span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {playlist.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-[#3c3abe]/10 text-[#3c3abe] text-xs rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          playlist.isPublic 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {playlist.isPublic ? 'Public' : 'Private'}
+                        </span>
+                        
+                        <button className="text-gray-400 hover:text-[#3c3abe] transition-colors">
+                          <Share2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Community & Shared Playlists */}
+      <section ref={communityRef} className="py-20 px-6 bg-[#fcfcff]/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#fcfcff] mb-4">
+              Community Playlists
+            </h2>
+            <p className="text-[#c4c4c4] text-lg">
+              Discover and share playlists with fellow music lovers
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            {communityPlaylists.map((playlist) => (
+              <motion.div
+                key={playlist.id}
+                className="community-card bg-[#fcfcff]/10 backdrop-blur-md rounded-2xl p-6 border border-[#fcfcff]/20 hover:border-[#3c3abe]/50 transition-all duration-300"
+                whileHover={{ y: -5 }}
+              >
+                <div className="flex items-start space-x-4 mb-4">
+                  <img
+                    src={playlist.cover}
+                    alt={playlist.name}
+                    className="w-16 h-16 rounded-xl object-cover"
+                  />
+                  
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-[#fcfcff] mb-1">
+                      {playlist.name}
+                    </h3>
+                    <div className="flex items-center space-x-2 text-sm text-[#c4c4c4]">
+                      <img
+                        src={playlist.creator.avatar}
+                        alt={playlist.creator.name}
+                        className="w-5 h-5 rounded-full"
+                      />
+                      <span>by {playlist.creator.name}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center text-sm text-[#c4c4c4] space-x-4 mb-4">
+                  <span className="flex items-center space-x-1">
+                    <Clock size={14} />
+                    <span>{playlist.duration}</span>
+                  </span>
+                  <span>{playlist.tracks} tracks</span>
+                </div>
+                
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {playlist.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-[#3c3abe]/20 text-[#3c3abe] text-xs rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="flex items-center justify-between pt-4 border-t border-[#fcfcff]/10">
+                  <div className="flex items-center space-x-4 text-sm text-[#c4c4c4]">
+                    <button className="flex items-center space-x-1 hover:text-red-400 transition-colors">
+                      <Heart size={14} />
+                      <span>{playlist.likes}</span>
+                    </button>
+                    
+                    <button className="flex items-center space-x-1 hover:text-blue-400 transition-colors">
+                      <MessageCircle size={14} />
+                      <span>{playlist.comments}</span>
+                    </button>
+                    
+                    <button className="flex items-center space-x-1 hover:text-green-400 transition-colors">
+                      <GitFork size={14} />
+                      <span>{playlist.forks}</span>
+                    </button>
+                  </div>
+                  
+                  <motion.button
+                    className="w-10 h-10 bg-[#3c3abe] rounded-full flex items-center justify-center text-white hover:bg-[#3c3abe]/80 transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Play size={14} fill="white" />
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* You Might Also Like */}
+          <div className="mt-16 text-center">
+            <h3 className="text-xl font-semibold text-[#fcfcff] mb-6">
+              You might also like...
+            </h3>
+            
+            <div className="flex justify-center">
+              <motion.button
+                className="bg-[#fcfcff]/10 backdrop-blur-sm text-[#c4c4c4] px-6 py-3 rounded-xl hover:bg-[#fcfcff]/20 transition-all duration-300 border border-[#fcfcff]/20"
+                whileHover={{ scale: 1.05 }}
+              >
+                Discover More Playlists
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PWA Offline CTA */}
+      <section className="py-16 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="bg-gradient-to-r from-[#3c3abe]/20 to-[#6563ee]/20 backdrop-blur-sm rounded-2xl p-8 border border-[#3c3abe]/30">
+            <Download className="mx-auto mb-4 text-[#3c3abe]" size={48} />
+            <h3 className="text-2xl font-bold text-[#fcfcff] mb-4">
+              Save Your Favorites Offline
+            </h3>
+            <p className="text-[#c4c4c4] mb-6">
+              Download your playlists and enjoy your music anywhere, even without internet
+            </p>
+            
+            <motion.button
+              className="bg-gradient-to-r from-[#3c3abe] to-[#6563ee] text-white px-8 py-3 rounded-xl font-medium hover:shadow-lg hover:shadow-[#3c3abe]/25 transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Enable Offline Mode
             </motion.button>
           </div>
         </div>
+      </section>
+
+
+      {/* Floating CTA Button */}
+      <AnimatePresence>
+        {isScrolled && (
+          <motion.div
+            ref={ctaButtonRef}
+            className="fixed bottom-16 right-16 z-50"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
+            <motion.button
+              className="group relative w-16 h-16 bg-gradient-to-r from-[#3c3abe] to-[#6563ee] rounded-full shadow-lg shadow-[#3c3abe]/25 flex items-center justify-center text-white overflow-hidden"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{
+                boxShadow: [
+                  "0 8px 32px rgba(60, 58, 190, 0.25)",
+                  "0 8px 32px rgba(60, 58, 190, 0.5)",
+                  "0 8px 32px rgba(60, 58, 190, 0.25)"
+                ]
+              }}
+              transition={{
+                boxShadow: {
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }
+              }}
+            >
+              <Plus size={28} />
+              <motion.div
+                className="absolute inset-0 bg-white rounded-full"
+                initial={{ scale: 0 }}
+                whileHover={{ scale: 1.8 }}
+                transition={{ duration: 0.5 }}
+                style={{ originX: 0.5, originY: 0.5, opacity: 0.1 }}
+              />
+            </motion.button>
+            
+            <motion.div
+              className="absolute -top-10 right-0 bg-white text-[#07070d] text-sm font-medium px-4 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              Create Playlist
+              <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-white"></div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Music Player (Minimized version) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black h-16 border-t border-[#3c3abe]/20 flex items-center justify-between px-4 z-40">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-gray-800 rounded overflow-hidden mr-3">
+            <img 
+              src="/api/placeholder/40/40" 
+              alt="Now playing" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div>
+            <h4 className="text-white text-sm font-medium">Currently Playing</h4>
+            <p className="text-[#c4c4c4] text-xs">Artist Name</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <button className="text-[#c4c4c4] hover:text-white transition-colors">
+            <Play size={20} />
+          </button>
+          <button className="text-[#c4c4c4] hover:text-white transition-colors">
+            <Heart size={20} />
+          </button>
+          <button className="text-[#c4c4c4] hover:text-white transition-colors">
+            <Volume2 size={20} />
+          </button>
+        </div>
       </div>
-    </motion.div>
-  );
+
+      {/* Mobile Navigation (Hidden on larger screens) */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 bg-[#07070d] border-t border-[#3c3abe]/20 flex items-center justify-around px-2 py-3 z-40">
+        <button className="flex flex-col items-center justify-center text-[#3c3abe]">
+          <Home size={20} />
+          <span className="text-xs mt-1">Home</span>
+        </button>
+        <button className="flex flex-col items-center justify-center text-[#c4c4c4]">
+          <Search size={20} />
+          <span className="text-xs mt-1">Search</span>
+        </button>
+        <button className="flex flex-col items-center justify-center text-[#c4c4c4]">
+          <Music size={20} />
+          <span className="text-xs mt-1">Library</span>
+        </button>
+        <button className="flex flex-col items-center justify-center text-[#c4c4c4]">
+          <User size={20} />
+          <span className="text-xs mt-1">Profile</span>
+        </button>
+      </div>
+      </div>
+);
 };
 
-export default PlaylistsPage;
+
+export default Playlists;
