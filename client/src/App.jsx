@@ -1,5 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import 'react-toastify/dist/ReactToastify.css';
 import { MusicPlayerProvider } from './context/MusicPlayerContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
@@ -16,8 +19,24 @@ import PlaylistViewPage from './pages/PlaylistViewPage';
 import FavoritesPage from './pages/FavoritesPage';    
 import NewMemoryPage from './pages/NewMemoryPage';
 function App() {
+  // Replace with your actual Google OAuth client ID
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
+
   return (
-    <div className="h-full flex flex-col">
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <div className="h-full flex flex-col">
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
       <Router>
         <ErrorBoundary>
           <MusicPlayerProvider>
@@ -70,8 +89,9 @@ function App() {
             </Routes>
           </MusicPlayerProvider>
         </ErrorBoundary>
-      </Router>
-    </div>
+        </Router>
+      </div>
+    </GoogleOAuthProvider>
   );
 }
 

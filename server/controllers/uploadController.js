@@ -3,14 +3,16 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const cloudinary = require('../utils/cloudinary');
 const Song = require('../models/Song');
+const ErrorResponse = require('../utils/errorResponse');
+const asyncHandler = require('../middlewares/async');
 
 // @desc    Upload a song
 // @route   POST /api/upload/song
 // @access  Private
-exports.uploadSong = async (req, res) => {
+exports.uploadSong = asyncHandler(async (req, res, next) => {
   try {
     if (!req.files || !req.files.song) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return next(new ErrorResponse('No file uploaded', 400));
     }
 
     const songFile = req.files.song;
@@ -19,7 +21,7 @@ exports.uploadSong = async (req, res) => {
     // Validate file type
     const fileExt = path.extname(songFile.name).toLowerCase();
     if (!['.mp3', '.wav', '.ogg'].includes(fileExt)) {
-      return res.status(400).json({ message: 'Invalid file type. Only MP3, WAV, and OGG files are allowed.' });
+      return next(new ErrorResponse('Invalid file type. Only MP3, WAV, and OGG files are allowed.', 400));
     }
 
     // Generate unique filename
@@ -43,97 +45,99 @@ exports.uploadSong = async (req, res) => {
       overwrite: true,
     });
 
-    // Remove local file
     fs.unlinkSync(uploadPath);
 
     // Save to database
     const song = new Song({
-      title: title || path.basename(songFile.name, fileExt),
-      artist: artist || 'Unknown',
+      title: title || path.basename(songFile.originalname, path.extname(songFile.originalname)),
+      artist: artist || 'Unknown Artist',
       genre: genre || 'Other',
-      duration: 0, // You might want to extract this from the file metadata
+      album: album || 'Unknown Album',
+      duration: duration || 0,
       url: result.secure_url,
-      cloudinaryId: result.public_id,
+      publicId: result.public_id,
+      coverImage: coverImage,
       user: req.user.id,
     });
 
     await song.save();
 
-    res.status(201).json(song);
+    res.status(201).json({
+      success: true,
+      data: song,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error during file upload' });
+    // Clean up any uploaded files if error occurs
+    if (req.files.cover && fs.existsSync(req.files.cover.path)) {
+      fs.unlinkSync(req.files.cover.path);
+    }
+    if (req.files.song && fs.existsSync(req.files.song.path)) {
+      fs.unlinkSync(req.files.song.path);
+    }
+    return next(new ErrorResponse('File upload failed', 500));
   }
-};
+});
 
 // @desc    Upload an image
 // @route   POST /api/upload/image
 // @access  Private
-exports.uploadImage = async (req, res) => {
+exports.uploadImage = asyncHandler(async (req, res, next) => {
+  if (!req.file) {
+    return next(new ErrorResponse('No file uploaded', 400));
+  }
+
+  const imageFile = req.file;
+  const { folder = 'misc' } = req.body;
+
   try {
-    if (!req.files || !req.files.image) {
-      return res.status(400).json({ message: 'No image uploaded' });
-    }
-
-    const imageFile = req.files.image;
-    
-    // Validate file type
-    const fileExt = path.extname(imageFile.name).toLowerCase();
-    if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(fileExt)) {
-      return res.status(400).json({ message: 'Invalid image format' });
-    }
-
-    // Generate unique filename
-    const fileName = `${uuidv4()}${fileExt}`;
-    const uploadPath = path.join(__dirname, '../uploads/images', fileName);
-
-    // Create uploads directory if it doesn't exist
-    if (!fs.existsSync(path.join(__dirname, '../uploads/images'))) {
-      fs.mkdirSync(path.join(__dirname, '../uploads/images'), { recursive: true });
-    }
-
-    // Save file locally
-    await imageFile.mv(uploadPath);
-
     // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload(uploadPath, {
-      folder: 'music-player/images',
+    const result = await cloudinary.uploader.upload(imageFile.path, {
+      folder: `music-player/${folder}`,
+      resource_type: 'image',
       use_filename: true,
-      unique_filename: false,
+      unique_filename: true,
       overwrite: true,
     });
 
-    // Remove local file
-    fs.unlinkSync(uploadPath);
+    // Remove temp file
+    fs.unlinkSync(imageFile.path);
 
-    res.json({
-      url: result.secure_url,
-      publicId: result.public_id,
+    res.status(201).json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        publicId: result.public_id,
+      },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error during image upload' });
+    // Clean up temp file if error occurs
+    if (fs.existsSync(imageFile.path)) {
+      fs.unlinkSync(imageFile.path);
+    }
+    return next(new ErrorResponse('Image upload failed', 500));
   }
-};
+});
 
 // @desc    Delete a file from Cloudinary
 // @route   DELETE /api/upload
 // @access  Private
-exports.deleteFile = async (req, res) => {
+exports.deleteFile = asyncHandler(async (req, res, next) => {
+  const { publicId, resourceType = 'image' } = req.body;
+
+  if (!publicId) {
+    return next(new ErrorResponse('Please provide a public ID', 400));
+  }
+
   try {
-    const { publicId, resourceType = 'image' } = req.body;
-
-    if (!publicId) {
-      return res.status(400).json({ message: 'Public ID is required' });
-    }
-
     await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
     });
 
-    res.json({ message: 'File deleted successfully' });
+    res.status(200).json({
+      success: true,
+      data: {}
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error during file deletion' });
+    return next(new ErrorResponse('Failed to delete file', 500));
   }
-};
+});

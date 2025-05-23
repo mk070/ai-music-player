@@ -52,18 +52,18 @@ const SignupPage = () => {
   return (
     <div 
       ref={containerRef}
-      className={`min-h-screen flex items-center justify-center p-4 md:p-6 bg-gradient-to-br from-navy to-navy-dark overflow-hidden transition-all duration-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+      className={`min-h-screen flex items-center justify-center p-4 py-8 md:p-8 bg-gradient-to-br from-navy to-navy-dark overflow-y-auto transition-all duration-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-navy-dark via-navy to-navy-dark overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-br from-navy-dark via-navy to-navy-dark overflow-hidden">
         {/* Circular gradient accent */}
         <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-accent opacity-5 blur-3xl rounded-full transform -translate-x-1/4 translate-y-1/4"></div>
       </div>
       
       <div 
         ref={contentRef}
-        className={`relative bg-navy-dark/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full flex flex-col md:flex-row transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+        className={`relative bg-navy-dark/90 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl w-full max-w-5xl mb-8 mt-12 pt-10 flex flex-col md:flex-row transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
       >
-        <div className="md:w-1/2 flex items-center justify-center p-8 md:p-12">
+        <div className="md:w-1/2 flex items-center justify-center p-8 md:p-12 overflow-y-auto">
           <div className="w-full max-w-md">
             <button 
               onClick={() => navigate(-1)}
@@ -73,7 +73,7 @@ const SignupPage = () => {
               Back
             </button>
             <h1 className="text-3xl font-bold text-content mb-2">Create Account</h1>
-            <p className="text-text-light mb-8">Join ReverBeat and start your musical journey</p>
+            <p className="text-text-light mb-6">Join ReverBeat and start your musical journey</p>
             <AuthForm type="signup" />
           </div>
         </div>

@@ -10,37 +10,55 @@ const errorHandler = (err, req, res, next) => {
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
-    const message = `Resource not found`;
-    error = new ErrorResponse(message, 404);
+    const message = `Resource not found with id of ${err.value}`;
+    error = ErrorResponse.notFound(message);
   }
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-    const message = 'Duplicate field value entered';
-    error = new ErrorResponse(message, 400);
+    const field = Object.keys(err.keyValue)[0];
+    const message = `Duplicate field value: ${field}. Please use another value.`;
+    error = ErrorResponse.badRequest(message);
   }
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const message = Object.values(err.errors).map(val => val.message);
-    error = new ErrorResponse(message, 400);
+    error = ErrorResponse.validationError(message);
   }
 
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    const message = 'Not authorized, token failed';
-    error = new ErrorResponse(message, 401);
+    error = ErrorResponse.unauthorized('Not authorized, token failed');
   }
 
   // JWT expired
   if (err.name === 'TokenExpiredError') {
-    const message = 'Session expired, please log in again';
-    error = new ErrorResponse(message, 401);
+    error = ErrorResponse.unauthorized('Session expired, please log in again');
   }
 
-  res.status(error.statusCode || 500).json({
+  // Handle custom errors
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      success: false,
+      error: err.message || 'Server Error'
+    });
+  }
+
+  // Log the full error in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Server Error',
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  }
+
+  // For production, don't leak error details
+  res.status(500).json({
     success: false,
-    error: error.message || 'Server Error'
+    error: 'Internal Server Error'
   });
 };
 

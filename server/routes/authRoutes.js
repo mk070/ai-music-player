@@ -1,27 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  register, 
-  login, 
-  getMe,
-  forgotPassword,
-  resetPassword,
-  updateDetails,
-  updatePassword,
-  logout
-} = require('../controllers/authController');
+const authController = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
-// Public routes
-router.post('/register', register);
-router.post('/login', login);
-router.post('/forgotpassword', forgotPassword);
-router.put('/resetpassword/:resettoken', resetPassword);
+// Public routes - no authentication required
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/forgotpassword', authController.forgotPassword);
+router.put('/resetpassword/:resettoken', authController.resetPassword);
 
-// Protected routes
-router.get('/me', protect, getMe);
-router.put('/updatedetails', protect, updateDetails);
-router.put('/updatepassword', protect, updatePassword);
-router.get('/logout', protect, logout);
+// Protected routes - require authentication
+router.get('/me', protect, authController.getMe);
+router.put('/updatedetails', protect, authController.updateDetails);
+router.put('/updatepassword', protect, authController.updatePassword);
+router.get('/logout', protect, authController.logout);
 
 module.exports = router;
