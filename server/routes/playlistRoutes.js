@@ -18,7 +18,7 @@ const {
   getPlaylistStats
 } = require('../controllers/playlistController');
 
-const { uploadCover } = require('../services/cloudinary');
+const { uploadImage } = require('../services/cloudinary');
 const { protect } = require('../middlewares/authMiddleware');
 const advancedResults = require('../middlewares/advancedResults');
 const Playlist = require('../models/Playlist');
@@ -40,12 +40,12 @@ router.use(protect);
 
 // Playlist management routes
 router.route('/')
-  .post(uploadCover.fields([
+  .post(uploadImage.fields([
     { name: 'coverImage', maxCount: 1 }
   ]), createPlaylist);
 
 router.route('/:id')
-  .put(uploadCover.fields([
+  .put(uploadImage.fields([
     { name: 'coverImage', maxCount: 1 }
   ]), updatePlaylist)
   .delete(deletePlaylist);

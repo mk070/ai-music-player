@@ -108,38 +108,161 @@ const getSong = asyncHandler(async (req, res) => {
 // @route   POST /api/songs
 // @access  Private
 const uploadSong = asyncHandler(async (req, res) => {
-  if (!req.files || !req.files.song) {
-    return res.status(400).json({
-      success: false,
-      error: 'Please provide an audio file with key "song"'
-    });
-  }
-
-  const { title, artist, album, genre, tags, mood, memory, useAI, isPublic } = req.body;
-
-  // Validate required fields
-  if (!title || !artist || !genre) {
-    return res.status(400).json({
-      success: false,
-      error: 'Please provide title, artist, and genre'
-    });
-  }
-
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substr(2, 9);
+  
   try {
+    console.log(`\n=== UPLOAD REQUEST STARTED [${requestId}] ===`);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('User ID:', req.user?.id || 'No user');
+    console.log('Request headers:', {
+      'content-type': req.get('content-type'),
+      'content-length': req.get('content-length'),
+      'user-agent': req.get('user-agent')
+    });
+    
+    // Log all request data
+    console.log('\n--- REQUEST ANALYSIS ---');
+    console.log('req.body keys:', Object.keys(req.body || {}));
+    console.log('req.files exists:', !!req.files);
+    console.log('req.files keys:', req.files ? Object.keys(req.files) : 'No files');
+    
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log('Body content:', JSON.stringify(req.body, null, 2));
+    }
+    
+    // Detailed file analysis
+    console.log('\n--- FILE ANALYSIS ---');
+    if (!req.files || Object.keys(req.files).length === 0) {
+      console.log('❌ No files found in request');
+      return res.status(400).json({
+        success: false,
+        error: 'No files were uploaded',
+        debug: {
+          requestId,
+          hasFiles: !!req.files,
+          fileKeys: req.files ? Object.keys(req.files) : [],
+          bodyKeys: Object.keys(req.body || {})
+        }
+      });
+    }
+    
+    // Extract files
+    const songFile = req.files?.song?.[0];
+    const coverFile = req.files?.cover?.[0];
+    
+    console.log('Song file exists:', !!songFile);
+    console.log('Cover file exists:', !!coverFile);
+    
+    if (!songFile) {
+      console.log('❌ No song file found');
+      console.log('Available file fields:', Object.keys(req.files));
+      return res.status(400).json({
+        success: false,
+        error: 'No song file was uploaded',
+        debug: {
+          requestId,
+          availableFields: Object.keys(req.files),
+          expectedField: 'song'
+        }
+      });
+    }
+    
+    if (!songFile.buffer || songFile.buffer.length === 0) {
+      console.log('❌ Song file has no buffer or empty buffer');
+      return res.status(400).json({
+        success: false,
+        error: 'Song file is empty or corrupted',
+        debug: {
+          requestId,
+          hasBuffer: !!songFile.buffer,
+          bufferLength: songFile.buffer ? songFile.buffer.length : 0
+        }
+      });
+    }
+    
+    // Log file details
+    console.log('\n--- SONG FILE DETAILS ---');
+    console.log('Original name:', songFile.originalname);
+    console.log('MIME type:', songFile.mimetype);
+    console.log('File size:', songFile.size, 'bytes');
+    console.log('Buffer length:', songFile.buffer.length, 'bytes');
+    console.log('Encoding:', songFile.encoding);
+    console.log('Field name:', songFile.fieldname);
+    
+    if (coverFile) {
+      console.log('\n--- COVER FILE DETAILS ---');
+      console.log('Original name:', coverFile.originalname);
+      console.log('MIME type:', coverFile.mimetype);
+      console.log('File size:', coverFile.size, 'bytes');
+      console.log('Buffer length:', coverFile.buffer ? coverFile.buffer.length : 0, 'bytes');
+      console.log('Encoding:', coverFile.encoding);
+      console.log('Field name:', coverFile.fieldname);
+    }
+    
+    // Validate required fields
+    console.log('\n--- FIELD VALIDATION ---');
+    const { title, artist, album, genre, tags, mood, memory, useAI, isPublic } = req.body;
+    
+    const requiredFields = { title, artist, genre };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+    
+    if (missingFields.length > 0) {
+      console.log('❌ Missing required fields:', missingFields);
+      return res.status(400).json({
+        success: false,
+        error: `Missing required fields: ${missingFields.join(', ')}`,
+        debug: {
+          requestId,
+          missingFields,
+          receivedFields: Object.keys(req.body)
+        }
+      });
+    }
+    
+    console.log('✅ All required fields present');
+    console.log('Field values:', { title, artist, album, genre, tags, mood, memory, useAI, isPublic });
+    
+    // Test Cloudinary upload function exists
+    if (typeof uploadBufferToCloudinary !== 'function') {
+      throw new Error('uploadBufferToCloudinary function is not available');
+    }
+    
     // Upload audio file to Cloudinary
-    const audioResult = await uploadBufferToCloudinary(req.files.song[0].buffer, {
+    console.log('\n--- CLOUDINARY AUDIO UPLOAD ---');
+    console.log('Starting audio upload...');
+    console.log('Upload options:', {
       folder: 'music-player/audio',
       resource_type: 'video',
-      quality: 'auto'
+      quality: 'auto',
+      filename_override: songFile.originalname,
     });
+    
+    const audioUploadStart = Date.now();
+    const audioResult = await uploadBufferToCloudinary(songFile.buffer, {
+      folder: 'music-player/audio',
+      resource_type: 'video',
+      quality: 'auto',
+      filename_override: songFile.originalname,
+      context: `title=${title}|artist=${artist}|album=${album || ''}`
+    });
+    const audioUploadTime = Date.now() - audioUploadStart;
+    
+    console.log('✅ Audio upload successful in', audioUploadTime, 'ms');
+    console.log('Audio URL:', audioResult.secure_url);
+    console.log('Audio public ID:', audioResult.public_id);
+    console.log('Audio duration:', audioResult.duration || 'Unknown');
 
     let coverImageResult = null;
     
-    // Check for both 'cover' and 'coverImage' fields
-    const coverFile = req.files.cover ? req.files.cover[0] : (req.files.coverImage ? req.files.coverImage[0] : null);
-
     // Upload cover image if provided
-    if (coverFile) {
+    if (coverFile && coverFile.buffer && coverFile.buffer.length > 0) {
+      console.log('\n--- CLOUDINARY COVER UPLOAD ---');
+      console.log('Starting cover image upload...');
+      
+      const coverUploadStart = Date.now();
       coverImageResult = await uploadBufferToCloudinary(coverFile.buffer, {
         folder: 'music-player/covers',
         resource_type: 'image',
@@ -148,9 +271,17 @@ const uploadSong = asyncHandler(async (req, res) => {
           { quality: 'auto' }
         ]
       });
+      const coverUploadTime = Date.now() - coverUploadStart;
+      
+      console.log('✅ Cover image upload successful in', coverUploadTime, 'ms');
+      console.log('Cover URL:', coverImageResult.secure_url);
+      console.log('Cover public ID:', coverImageResult.public_id);
+    } else {
+      console.log('⏭️ No cover image to upload');
     }
 
     // Create song object
+    console.log('\n--- DATABASE SAVE ---');
     const songData = {
       title,
       artist,
@@ -170,25 +301,65 @@ const uploadSong = asyncHandler(async (req, res) => {
         publicId: coverImageResult.public_id
       } : { url: '', publicId: '' }
     };
-
-    const song = await Song.create(songData);
+    
+    console.log('Song data to save:', JSON.stringify(songData, null, 2));
+    
+    const dbSaveStart = Date.now();
+    const createdSong = await Song.create(songData);
+    const dbSaveTime = Date.now() - dbSaveStart;
+    
+    console.log('✅ Song saved to database in', dbSaveTime, 'ms');
+    console.log('Created song ID:', createdSong._id);
 
     // Populate user data
-    await song.populate('user', 'name avatar');
+    await createdSong.populate('user', 'name avatar');
+    
+    const totalTime = Date.now() - startTime;
+    console.log(`\n=== UPLOAD REQUEST COMPLETED [${requestId}] ===`);
+    console.log('Total processing time:', totalTime, 'ms');
+    console.log('Success: true');
 
     res.status(201).json({
       success: true,
-      data: song
+      data: createdSong,
+      debug: {
+        requestId,
+        processingTime: totalTime,
+        audioUploadTime,
+        coverUploadTime: coverImageResult ? 'N/A' : 'No cover uploaded',
+        dbSaveTime
+      }
     });
 
   } catch (error) {
-    console.error('Song upload error:', error);
+    const totalTime = Date.now() - startTime;
+    console.error(`\n=== UPLOAD REQUEST FAILED [${requestId}] ===`);
+    console.error('Total time before error:', totalTime, 'ms');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    if (error.code) {
+      console.error('Error code:', error.code);
+    }
+    
+    if (error.response) {
+      console.error('Error response:', error.response);
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Failed to upload song'
+      error: error.message || 'Failed to upload song',
+      debug: {
+        requestId,
+        errorType: error.name,
+        processingTime: totalTime,
+        timestamp: new Date().toISOString()
+      }
     });
   }
 });
+
 
 // @desc    Update song
 // @route   PUT /api/songs/:id
@@ -451,6 +622,29 @@ const getSongStats = asyncHandler(async (req, res) => {
     }
   });
 });
+
+// Additional debug middleware to catch any unhandled errors
+const debugErrorHandler = (err, req, res, next) => {
+  console.error('=== UNHANDLED ERROR IN UPLOAD ROUTE ===');
+  console.error('Error:', err);
+  console.error('Request method:', req.method);
+  console.error('Request URL:', req.url);
+  console.error('Request headers:', req.headers);
+  console.error('=== END UNHANDLED ERROR ===');
+  
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during upload',
+      debug: {
+        errorType: err.name,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+};
+
+// Add this to your route setup
 
 module.exports = {
   getSongs,

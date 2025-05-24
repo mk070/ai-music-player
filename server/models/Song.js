@@ -110,35 +110,52 @@ SongSchema.index({
 
 // Static method to get average song duration by user
 SongSchema.statics.getAverageDuration = async function(userId) {
-  const obj = await this.aggregate([
-    {
-      $match: { user: userId }
-    },
-    {
-      $group: {
-        _id: '$user',
-        averageDuration: { $avg: '$duration' }
-      }
-    }
-  ]);
-
   try {
-    await this.model('User').findByIdAndUpdate(userId, {
-      averageSongDuration: obj[0] ? Math.ceil(obj[0].averageDuration / 10) * 10 : 0
-    });
+    // Skip if userId is not a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.warn(`Invalid user ID: ${userId}`);
+      return;
+    }
+
+    const obj = await this.aggregate([
+      {
+        $match: { user: new mongoose.Types.ObjectId(userId) }
+      },
+      {
+        $group: {
+          _id: '$user',
+          averageDuration: { $avg: '$duration' }
+        }
+      }
+    ]);
+
+    // Only proceed if User model is available
+    if (mongoose.modelNames().includes('User')) {
+      const User = mongoose.model('User');
+      await User.findByIdAndUpdate(userId, {
+        averageSongDuration: obj[0] ? Math.ceil(obj[0].averageDuration / 10) * 10 : 0
+      });
+    } else {
+      console.warn('User model not available for updating average song duration');
+    }
   } catch (err) {
-    console.error(err);
+    console.error('Error in getAverageDuration:', err.message);
+    // Don't throw error to prevent import from failing
   }
 };
 
 // Call getAverageDuration after save
 SongSchema.post('save', function() {
-  this.constructor.getAverageDuration(this.user);
+  if (this.user) {
+    this.constructor.getAverageDuration(this.user);
+  }
 });
 
 // Call getAverageDuration before remove
 SongSchema.pre('remove', function() {
-  this.constructor.getAverageDuration(this.user);
+  if (this.user) {
+    this.constructor.getAverageDuration(this.user);
+  }
 });
 
 module.exports = mongoose.model('Song', SongSchema);

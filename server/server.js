@@ -19,7 +19,26 @@ process.on('uncaughtException', (err) => {
 connectDB();
 
 const port = process.env.PORT || 5000;
-const server = app.listen(port, () => {
+
+// Create HTTP server with increased timeouts
+const server = require('http').createServer(app);
+
+// Increase the server timeout to 10 minutes (600000ms)
+server.timeout = 600000;
+
+// Handle server timeouts
+server.on('timeout', (socket) => {
+  console.error('Server timeout - closing connection'.red.bold);
+  socket.end('HTTP/1.1 408 Request Timeout\r\n\r\n');
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  console.error('Server error:'.red.bold, error);
+});
+
+// Start the server
+server.listen(port, () => {
   console.log(
     `Server running in ${process.env.NODE_ENV} mode on port ${port}`.yellow.bold
   );

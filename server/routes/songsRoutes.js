@@ -1,274 +1,142 @@
+// routes/songsRoutes.js
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const { protect } = require('../middlewares/authMiddleware');
 const {
   getSongs,
   getSong,
   uploadSong,
   updateSong,
   deleteSong,
+  getUserSongs,
   toggleLikeSong,
-  getLikedSongs,
-  getSongsByUser,
-  getSongsByGenre,
+  getTrendingSongs,
   getSongsByMood,
-  incrementPlayCount,
-  searchSongs
+  getSongStats
 } = require('../controllers/songController');
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
+const { uploadSongWithCover } = require('../services/cloudinary');
+const { protect } = require('../middlewares/authMiddleware');
+const advancedResults = require('../middlewares/advancedResults');
+const Song = require('../models/Song');
+const multer = require('multer');
+const router = express.Router();
 
-// Create separate upload handlers for different file types
-const uploadAudio = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('audio/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Please upload only audio files'), false);
-    }
-  }
-}).single('song');
 
-const uploadCover = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for cover images
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Please upload only image files for cover'), false);
-    }
-  }
-}).single('cover');
+// Pre-upload logging middleware
+const preUploadLogger = (req, res, next) => {
+  console.log('=== PRE-UPLOAD MIDDLEWARE ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('Content-Type:', req.get('Content-Type'));
+  console.log('Content-Length:', req.get('Content-Length'));
+  console.log('Raw headers:', req.rawHeaders);
+  console.log('=== END PRE-UPLOAD ===');
+  next();
+};
 
-// Handle file uploads
-const handleUpload = (req, res, next) => {
-  // First handle the audio file
-  uploadAudio(req, res, (audioErr) => {
-    if (audioErr) {
-      console.error('Audio upload error:', audioErr);
-      return res.status(400).json({ 
-        success: false, 
-        error: audioErr.message || 'Error uploading audio file' 
-      });
-    }
-    
-    // Then handle the cover image (if any)
-    if (req.file) {
-      req.audioFile = req.file; // Store audio file
-      req.file = null; // Clear the file for the next upload
-    }
-    
-    uploadCover(req, res, (coverErr) => {
-      if (coverErr) {
-        console.error('Cover upload error:', coverErr);
-        // Continue even if cover upload fails, as it's optional
-      }
-      
-      if (req.file) {
-        req.coverFile = req.file; // Store cover file
-      }
-      
-      next();
+// Enhanced multer error handler
+const handleMulterErrors = (err, req, res, next) => {
+  console.log('=== MULTER ERROR HANDLER ===');
+  console.log('Error type:', err.constructor.name);
+  console.log('Error message:', err.message);
+  console.log('Error code:', err.code);
+  console.log('Error stack:', err.stack);
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      success: false,
+      error: 'File too large. Maximum size is 25MB.'
     });
+  }
+  
+  if (err.code === 'UNEXPECTED_FIELD') {
+    return res.status(400).json({
+      success: false,
+      error: `Unexpected field: ${err.field}. Expected 'song' and/or 'cover'.`
+    });
+  }
+  
+  if (err.message.includes('Unexpected end of form')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Form data was incomplete or corrupted during upload.'
+    });
+  }
+  
+  return res.status(400).json({
+    success: false,
+    error: err.message || 'File upload error'
   });
 };
 
-
-
-/**
- * @route   GET /api/songs
- * @desc    Get all songs with optional filtering and pagination
- * @access  Public
- */
-router.get('/', getSongs);
-
-/**
- * @route   GET /api/songs/search
- * @desc    Search songs with filters (uses the same handler as getSongs)
- * @access  Public
- */
-router.get('/search', getSongs);
-
-/**
- * @route   GET /api/songs/:id
- * @desc    Get single song by ID
- * @access  Public
- */
-router.get('/:id', getSong);
-
-/**
- * @route   POST /api/songs
- * @desc    Upload a new song
- * @access  Private
- */
-router.post('/', protect, (req, res, next) => {
-  console.log('Upload endpoint hit');
-  console.log('Request body:', req.body);
+// Post-upload logging middleware
+const postUploadLogger = (req, res, next) => {
+  console.log('=== POST-UPLOAD MIDDLEWARE ===');
+  console.log('Files received:', req.files ? Object.keys(req.files) : 'No files');
   
-  // Handle the file uploads
-  handleUpload(req, res, (err) => {
-    if (err) {
-      console.error('Upload error:', err);
-      return res.status(400).json({ 
-        success: false, 
-        error: err.message || 'Error processing upload' 
+  if (req.files) {
+    Object.keys(req.files).forEach(fieldname => {
+      const files = req.files[fieldname];
+      files.forEach((file, index) => {
+        console.log(`File ${fieldname}[${index}]:`, {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          fieldname: file.fieldname,
+          encoding: file.encoding,
+          bufferLength: file.buffer ? file.buffer.length : 'No buffer'
+        });
       });
-    }
-    
-    // Log the uploaded files for debugging
-    console.log('Uploaded files:', {
-      audioFile: req.audioFile ? req.audioFile.originalname : 'None',
-      coverFile: req.coverFile ? req.coverFile.originalname : 'None'
-    });
-    
-    // Move files to the expected locations
-    if (req.audioFile) {
-      req.files = req.files || {};
-      req.files.song = [req.audioFile];
-    }
-    
-    if (req.coverFile) {
-      req.files.cover = [req.coverFile];
-    }
-    
-    // Proceed to the uploadSong controller
-    uploadSong(req, res, next);
-  });
-});
-
-/**
- * @route   PUT /api/songs/:id
- * @desc    Update song details
- * @access  Private
- */
-router.put('/:id', protect, upload.none(), updateSong);
-
-/**
- * @route   DELETE /api/songs/:id
- * @desc    Delete a song
- * @access  Private
- */
-router.delete('/:id', protect, deleteSong);
-
-/**
- * @route   PUT /api/songs/:id/like
- * @desc    Toggle like/unlike a song
- * @access  Private
- */
-router.put('/:id/like', protect, toggleLikeSong);
-
-/**
- * @route   GET /api/songs/user/:userId
- * @desc    Get songs by user
- * @access  Public
- */
-// router.get('/user/:userId', getSongsByUser);
-
-// /**
-//  * @route   GET /api/songs/genre/:genre
-//  * @desc    Get songs by genre
-//  * @access  Public
-//  */
-// router.get('/genre/:genre', getSongsByGenre);
-
-// /**
-//  * @route   GET /api/songs/mood/:mood
-//  * @desc    Get songs by mood
-//  * @access  Public
-//  */
-// router.get('/mood/:mood', getSongsByMood);
-
-// /**
-//  * @route   GET /api/songs/liked
-//  * @desc    Get user's liked songs
-//  * @access  Private
-//  */
-// router.get('/liked', protect, getLikedSongs);
-
-// Error handling middleware
-router.use((error, req, res, next) => {
-  console.error('Songs API Error:', error);
-  
-  // Multer errors
-  if (error.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      success: false,
-      error: 'File too large'
     });
   }
   
-  if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(400).json({
-      success: false,
-      error: 'Unexpected file field'
-    });
-  }
+  console.log('Body fields:', Object.keys(req.body));
+  console.log('Body content:', req.body);
+  console.log('=== END POST-UPLOAD ===');
+  next();
+};
 
-  // Cloudinary errors
-  if (error.message.includes('Invalid image file')) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid image format'
-    });
-  }
+// Public routes
+router.route('/').get(advancedResults(Song, 'user', 'name avatar'), getSongs);
+router.route('/trending').get(getTrendingSongs);
+router.route('/mood/:mood').get(getSongsByMood);
+router.route('/:id').get(getSong);
+router.route('/user/:userId').get(getUserSongs);
 
-  // Generic error
-  res.status(500).json({
-    success: false,
-    error: 'Internal server error'
-  });
-});
+// Protected routes
+router.use(protect);
 
-/**
- * @route GET /api/music/health
- * @desc Health check endpoint
- * @access Public
- */
-router.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Music API is healthy',
-    timestamp: new Date().toISOString()
-  });
-});
+// Song management routes
+router.route('/')
+  .post(
+    preUploadLogger,
+    uploadSongWithCover.fields([
+      { name: 'song', maxCount: 1 },
+      { name: 'cover', maxCount: 1 }
+    ]),
+    handleMulterErrors,
+    postUploadLogger,
+    uploadSong
+  );
 
-// Error handling middleware
-router.use((error, req, res, next) => {
-  console.error('Music API Error:', error);
-  
-  // Multer errors
-  if (error.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      success: false,
-      error: 'File too large'
-    });
-  }
-  
-  if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(400).json({
-      success: false,
-      error: 'Unexpected file field'
-    });
-  }
 
-  // Cloudinary errors
-  if (error.message.includes('Invalid image file')) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid image format'
-    });
-  }
+// router.route('/:id')
+//   .put(
+//     (req, res, next) => {
+//       console.log('🔥 Incoming PUT /song with headers:', req.headers);
+//       next();
+//     },
+//     uploadSongWithCover.fields([
+//       { name: 'coverImage', maxCount: 1 }
+//     ]),
+//     multerErrorHandler, // Catch any multer/busboy issues
+//     updateSong
+//   )
+//   .delete(deleteSong);
 
-  // Generic error
-  res.status(500).json({
-    success: false,
-    error: 'Internal server error'
-  });
-});
+// Song interaction routes
+router.route('/:id/like').put(toggleLikeSong);
+
+// User stats routes
+router.route('/stats/user').get(getSongStats);
 
 module.exports = router;
