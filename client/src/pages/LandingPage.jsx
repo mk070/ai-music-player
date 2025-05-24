@@ -86,9 +86,9 @@ const LandingPage = () => {
   };
   
   return (
-    <div ref={containerRef} className="min-h-screen flex flex-col bg-navy-dark relative">
+    <div ref={containerRef} className="min-h-screen flex flex-col bg-[#0f0f16] relative">
       {/* Futuristic background with gradient and particles */}
-      <div className="fixed inset-0 bg-gradient-to-b from-navy-dark via-navy to-navy-dark overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-b from-[#0f0f16] via-[#0f0f16] to-[#0f0f16] overflow-hidden">
         {/* Particles container */}
         <div ref={particlesRef} className="absolute inset-0 z-0"></div>
         

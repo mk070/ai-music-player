@@ -21,6 +21,14 @@ const {
 } = require('../controllers/memoryController');
 const { protect } = require('../middlewares/authMiddleware');
 
+// Middleware to conditionally apply authentication
+const conditionalProtect = (req, res, next) => {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_AUTH === 'true') {
+    return protect(req, res, next);
+  }
+  next();
+};
+
 // Public routes
 router.get('/public', getPublicMemories);
 router.get('/search', searchMemories);
@@ -32,8 +40,8 @@ router.get('/user/:userId', getMemoriesByUser);
 router.get('/:id/likes', getMemoryLikes);
 router.get('/:id/comments', getMemoryComments);
 
-// Protected routes
-router.use(protect);
+// Protected routes (require authentication in production)
+router.use(conditionalProtect);
 
 router
   .route('/')
@@ -52,7 +60,8 @@ router
 
 router
   .route('/:id/comments')
-  .post(addComment);
+  .post(addComment)
+  .get(getMemoryComments);
 
 router
   .route('/:id/comments/:commentId')

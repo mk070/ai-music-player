@@ -1,45 +1,77 @@
+// routes/playlistsRoutes.js
 const express = require('express');
-const router = express.Router();
-const { protect } = require('../middlewares/authMiddleware');
-const playlistController = require('../controllers/playlistController');
+const {
+  getPlaylists,
+  getPlaylist,
+  createPlaylist,
+  updatePlaylist,
+  deletePlaylist,
+  addSongToPlaylist,
+  removeSongFromPlaylist,
+  reorderPlaylistSongs,
+  getUserPlaylists,
+  toggleLikePlaylist,
+  toggleFollowPlaylist,
+  addCollaborator,
+  removeCollaborator,
+  getTrendingPlaylists,
+  getPlaylistStats
+} = require('../controllers/playlistController');
 
-// Apply protect middleware to all routes
-router.use(protect);
+const { uploadCover } = require('../services/cloudinary');
+const { protect } = require('../middlewares/authMiddleware');
+const advancedResults = require('../middlewares/advancedResults');
+const Playlist = require('../models/Playlist');
+
+const router = express.Router();
 
 // Public routes
-router.get('/public', playlistController.getPublicPlaylists);
-router.get('/search', playlistController.searchPlaylists);
-router.get('/user/:userId', playlistController.getPlaylistsByUser);
+router.route('/').get(advancedResults(Playlist, [
+  { path: 'user', select: 'name avatar' },
+  { path: 'songs.song', select: 'title artist duration coverImage' }
+]), getPlaylists);
+
+router.route('/trending').get(getTrendingPlaylists);
+router.route('/:id').get(getPlaylist);
+router.route('/user/:userId').get(getUserPlaylists);
 
 // Protected routes
-router
-  .route('/')
-  .get(playlistController.getPlaylists)
-  .post(playlistController.createPlaylist);
+router.use(protect);
 
-// Single playlist routes
-router
-  .route('/:id')
-  .get(playlistController.getPlaylist)
-  .put(playlistController.updatePlaylist)
-  .delete(playlistController.deletePlaylist);
+// Playlist management routes
+router.route('/')
+  .post(uploadCover.fields([
+    { name: 'coverImage', maxCount: 1 }
+  ]), createPlaylist);
 
-// Song management routes
-router
-  .route('/:id/songs')
-  .put(playlistController.addSongToPlaylist);
+router.route('/:id')
+  .put(uploadCover.fields([
+    { name: 'coverImage', maxCount: 1 }
+  ]), updatePlaylist)
+  .delete(deletePlaylist);
 
-router
-  .route('/:id/songs/:songId')
-  .delete(playlistController.removeSongFromPlaylist);
+// Song management within playlist routes
+router.route('/:id/songs')
+  .post(addSongToPlaylist);
 
-// Like/Unlike routes
-router
-  .route('/:id/like')
-  .put(playlistController.likePlaylist);
+router.route('/:id/songs/:songId')
+  .delete(removeSongFromPlaylist);
 
-router
-  .route('/:id/unlike')
-  .put(playlistController.unlikePlaylist);
+router.route('/:id/reorder')
+  .put(reorderPlaylistSongs);
+
+// Playlist interaction routes
+router.route('/:id/like').put(toggleLikePlaylist);
+router.route('/:id/follow').put(toggleFollowPlaylist);
+
+// Collaboration routes
+router.route('/:id/collaborators')
+  .post(addCollaborator);
+
+router.route('/:id/collaborators/:userId')
+  .delete(removeCollaborator);
+
+// User stats routes
+router.route('/stats/user').get(getPlaylistStats);
 
 module.exports = router;

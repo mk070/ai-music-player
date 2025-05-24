@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, X, Loader, Music, PlusCircle, Check } from 'lucide-react';
+import { Upload, X, Loader, Music, PlusCircle, Check, Image as ImageIcon } from 'lucide-react';
+import api from '../utils/api';
 
 // Tag Input Component
 const TagInput = ({ tags, setTags }) => {
@@ -79,14 +80,21 @@ const MoodSelector = ({ selectedMood, setSelectedMood }) => {
     { emoji: '😴', name: 'Sleepy' }
   ];
   
+  const handleMoodClick = (moodName, e) => {
+    e.preventDefault(); // Prevent default button behavior
+    e.stopPropagation(); // Stop event bubbling
+    setSelectedMood(moodName);
+  };
+
   return (
     <div className="grid grid-cols-4 gap-3">
       {moods.map(mood => (
         <motion.button
           key={mood.name}
+          type="button" // Important: Set type to button to prevent form submission
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedMood(mood.name)}
+          onClick={(e) => handleMoodClick(mood.name, e)}
           className={`flex flex-col items-center justify-center p-3 rounded-lg border ${
             selectedMood === mood.name 
               ? 'border-[#3c3abe] bg-[#3c3abe]/20' 
@@ -123,6 +131,72 @@ const ToggleSwitch = ({ enabled, setEnabled, label }) => {
 };
 
 // Upload Card Component
+const CoverImageUpload = ({ coverImage, setCoverImage }) => {
+  const fileInputRef = useRef(null);
+  
+  const handleFileSelect = (selectedFile) => {
+    if (!selectedFile) return;
+    if (!selectedFile.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    setCoverImage(selectedFile);
+  };
+
+  return (
+    <div className="border-2 border-dashed rounded-xl p-6 text-center transition-colors border-white/20 bg-white/5 hover:border-[#3c3abe]/50 hover:bg-[#3c3abe]/5">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e.target.files[0])}
+      />
+      
+      {!coverImage ? (
+        <div className="py-4">
+          <div className="mx-auto w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
+            <ImageIcon size={24} className="text-[#3c3abe]" />
+          </div>
+          <h3 className="text-white text-md font-medium mb-2">Add Cover Image</h3>
+          <p className="text-gray-400 text-sm mb-4">Recommended size: 1000x1000px</p>
+          <button 
+            onClick={() => fileInputRef.current.click()}
+            className="px-4 py-2 bg-[#3c3abe] text-white rounded-lg hover:bg-[#3c3abe]/80 transition-colors text-sm"
+            type="button"
+          >
+            Select Image
+          </button>
+        </div>
+      ) : (
+        <div className="py-4">
+          <div className="relative mx-auto w-40 h-40 rounded-lg overflow-hidden mb-4">
+            <img 
+              src={URL.createObjectURL(coverImage)} 
+              alt="Cover" 
+              className="w-full h-full object-cover"
+            />
+            <button
+              onClick={() => setCoverImage(null)}
+              className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black/90"
+              type="button"
+            >
+              <X size={16} className="text-white" />
+            </button>
+          </div>
+          <button 
+            onClick={() => fileInputRef.current.click()}
+            className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+            type="button"
+          >
+            Change Image
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const UploadCard = ({ file, setFile }) => {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -281,10 +355,114 @@ const MemoryInput = ({ memory, setMemory }) => {
 // Main Upload Page Component
 const UploadPage = () => {
   const [file, setFile] = useState(null);
+  const [coverImage, setCoverImage] = useState(null);
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
+  const [album, setAlbum] = useState('');
+  const [genre, setGenre] = useState('');
   const [tags, setTags] = useState([]);
   const [selectedMood, setSelectedMood] = useState('');
   const [useAI, setUseAI] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [memory, setMemory] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Prevent form submission when selecting mood
+  const handleMoodSelect = (mood) => {
+    setSelectedMood(mood);
+    // Prevent the default form submission
+    const event = window.event;
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!file) {
+      alert('Please select a file to upload');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const formData = new FormData();
+      
+      // 1. First append the files (important to do this first)
+      formData.append('song', file);
+      if (coverImage) {
+        formData.append('cover', coverImage);
+      }
+      
+      // 2. Then append text fields
+      const metadata = {
+        title: title || 'Untitled',
+        artist: artist || 'Unknown Artist',
+        album: album || '',
+        genre: genre || 'Other',
+        mood: selectedMood || 'Neutral',
+        useAI: useAI,
+        isPublic: isPublic
+      };
+      
+      // Convert metadata to JSON and append as a single field
+      formData.append('metadata', JSON.stringify(metadata));
+      
+      // Log form data for debugging
+      console.log('=== Form Data ===');
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+      
+      // Use fetch directly for better control
+      const token = localStorage.getItem('token');
+      const endpoint = coverImage ? '/api/songs/upload-with-cover' : '/api/songs/upload';
+      
+      console.log('Sending request to:', endpoint);
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Let the browser set the Content-Type with boundary
+        },
+        body: formData
+      });
+      
+      const responseData = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Upload failed');
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
+      }
+      
+      // Reset form
+      setFile(null);
+      setCoverImage(null);
+      setTitle('');
+      setArtist('');
+      setAlbum('');
+      setGenre('');
+      setTags([]);
+      setSelectedMood('');
+      setMemory('');
+      setUseAI(false);
+      setIsPublic(true);
+      
+      alert('Song uploaded successfully!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(`Failed to upload song: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   return (
     <motion.div
@@ -295,9 +473,20 @@ const UploadPage = () => {
     >
       <h1 className="text-2xl font-bold text-white mb-6">Upload Music</h1>
       
-      <div className="grid gap-8">
-        {/* Upload Area */}
-        <UploadCard file={file} setFile={setFile} />
+      <form onSubmit={handleSubmit} className="grid gap-8">
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Upload Audio */}
+          <div>
+            <h3 className="text-white font-medium mb-3">Audio File</h3>
+            <UploadCard file={file} setFile={setFile} />
+          </div>
+          
+          {/* Upload Cover Image */}
+          <div>
+            <h3 className="text-white font-medium mb-3">Cover Image (Optional)</h3>
+            <CoverImageUpload coverImage={coverImage} setCoverImage={setCoverImage} />
+          </div>
+        </div>
         
         {file && (
           <motion.div
@@ -312,10 +501,37 @@ const UploadPage = () => {
                 <TagInput tags={tags} setTags={setTags} />
               </div>
               
+              {/* Title and Artist */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">Title *</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Song title"
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#3c3abe] focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">Artist (Optional)</label>
+                  <input
+                    type="text"
+                    value={artist}
+                    onChange={(e) => setArtist(e.target.value)}
+                    placeholder="Artist name"
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#3c3abe] focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
               {/* Mood */}
               <div>
                 <h3 className="text-white font-medium mb-3">How does this song make you feel?</h3>
-                <MoodSelector selectedMood={selectedMood} setSelectedMood={setSelectedMood} />
+                <div onClick={(e) => e.preventDefault()}>
+                  <MoodSelector selectedMood={selectedMood} setSelectedMood={handleMoodSelect} />
+                </div>
               </div>
               
               {/* Memory */}
@@ -324,25 +540,39 @@ const UploadPage = () => {
                 <MemoryInput memory={memory} setMemory={setMemory} />
               </div>
               
-              {/* AI Toggle */}
-              <ToggleSwitch 
-                enabled={useAI} 
-                setEnabled={setUseAI} 
-                label="Let AI Fill My Memory"
-              />
+              {/* Toggles */}
+              <div className="space-y-4">
+                <ToggleSwitch 
+                  enabled={useAI} 
+                  setEnabled={setUseAI} 
+                  label="Let AI Fill My Memory"
+                />
+                <ToggleSwitch 
+                  enabled={isPublic} 
+                  setEnabled={setIsPublic} 
+                  label="Make this song public"
+                />
+              </div>
               
               {/* Save Button */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-3 bg-[#3c3abe] text-white rounded-lg hover:bg-[#3c3abe]/90 transition-colors font-medium"
+                className="w-full py-3 bg-[#3c3abe] text-white rounded-lg hover:bg-[#3c3abe]/90 transition-colors font-medium flex items-center justify-center"
+                type="submit"
+                disabled={isSubmitting}
               >
-                Save
+                {isSubmitting ? (
+                  <>
+                    <Loader className="animate-spin mr-2" size={20} />
+                    Uploading...
+                  </>
+                ) : 'Save'}
               </motion.button>
             </div>
           </motion.div>
         )}
-      </div>
+      </form>
     </motion.div>
   );
 };

@@ -25,23 +25,51 @@ const SongSchema = new mongoose.Schema({
       'Pop', 'Rock', 'Hip Hop', 'Rap', 'R&B', 'Electronic', 'Jazz', 
       'Classical', 'Country', 'Blues', 'Reggae', 'Metal', 'Folk', 
       'Soul', 'Funk', 'Disco', 'Punk', 'Other'
-    ]
+    ],
+    default: 'Other'
+  },
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  mood: {
+    type: String,
+    enum: [
+      'Happy', 'Sad', 'Relaxed', 'Party', 'Cool', 
+      'Romantic', 'Energetic', 'Sleepy', null
+    ],
+    default: null
+  },
+  memory: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Memory cannot be more than 500 characters']
+  },
+  useAI: {
+    type: Boolean,
+    default: false
   },
   duration: {
     type: Number, // Duration in seconds
-    required: true
+    default: 0
   },
   url: {
     type: String,
     required: true
   },
-  cloudinaryId: {
+  publicId: {
     type: String,
     required: true
   },
   coverImage: {
-    type: String,
-    default: 'default-cover.jpg'
+    url: {
+      type: String,
+      default: ''
+    },
+    publicId: {
+      type: String,
+      default: ''
+    }
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -70,6 +98,15 @@ const SongSchema = new mongoose.Schema({
 
 // Prevent user from submitting more than one song with the same title and artist
 SongSchema.index({ title: 1, artist: 1, user: 1 }, { unique: true });
+
+// Text index for search
+SongSchema.index({ 
+  title: 'text', 
+  artist: 'text',
+  album: 'text',
+  genre: 'text',
+  tags: 'text'
+});
 
 // Static method to get average song duration by user
 SongSchema.statics.getAverageDuration = async function(userId) {

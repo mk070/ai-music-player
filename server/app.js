@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === 'development') {
 // Mount routers
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/playlists', require('./routes/playlistRoutes'));
-app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/songs', require('./routes/songsRoutes'));
 app.use('/api/memories', require('./routes/memoryRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
@@ -45,5 +45,9 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, '../', 'client', 'build', 'index.html'))
   );
 }
+
+app.get('/',(req,res)=>{
+  res.send('Welcome to the music player')
+})
 
 module.exports = app;

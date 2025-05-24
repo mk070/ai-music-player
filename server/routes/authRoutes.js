@@ -9,10 +9,18 @@ router.post('/login', authController.login);
 router.post('/forgotpassword', authController.forgotPassword);
 router.put('/resetpassword/:resettoken', authController.resetPassword);
 
-// Protected routes - require authentication
-router.get('/me', protect, authController.getMe);
-router.put('/updatedetails', protect, authController.updateDetails);
-router.put('/updatepassword', protect, authController.updatePassword);
-router.get('/logout', protect, authController.logout);
+// Middleware to conditionally apply authentication
+const conditionalProtect = (req, res, next) => {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_AUTH === 'true') {
+    return protect(req, res, next);
+  }
+  next();
+};
+
+// Protected routes - require authentication in production
+router.get('/me', conditionalProtect, authController.getMe);
+router.put('/updatedetails', conditionalProtect, authController.updateDetails);
+router.put('/updatepassword', conditionalProtect, authController.updatePassword);
+router.get('/logout', conditionalProtect, authController.logout);
 
 module.exports = router;
